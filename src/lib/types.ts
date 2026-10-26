@@ -4,7 +4,7 @@ export type ArtKind =
   | "pyramids" | "karnak" | "nile" | "hieroglyph" | "sun" | "abstract"
   | "sleeve" | "flag" | "case" | "sunshade" | "umbrella";
 
-export interface Variant { id: string; label: string; priceDelta: number }
+export interface Variant { id: string; label: string; price: number }   // price = final customer selling price (EGP)
 
 export interface Product {
   id: string;
@@ -13,7 +13,7 @@ export interface Product {
   nameAr: string;
   category: Category;
   collection?: string;   // e.g. "Garage", "Sky" for flags
-  price: number;          // EGP, base
+  price: number;          // EGP, lowest selling price (kept in sync with variants)
   compareAt?: number;     // optional old price
   stock: number;          // units available
   active: boolean;

@@ -27,6 +27,7 @@ export default function ProductPage() {
   }
 
   const price = linePrice(p, variant);
+  const selected = p.variants.find((v) => v.id === variant);
   const soldOut = p.stock <= 0;
   const related = db.products.filter((x) => x.active && x.id !== p.id && x.category === p.category).concat(db.products.filter((x) => x.active && x.featured && x.category !== p.category)).slice(0, 4);
   const views = p.images.length ? p.images.map((_, i) => i) : [0];
@@ -69,20 +70,27 @@ export default function ProductPage() {
             <h1 className="display text-5xl md:text-7xl mt-1">{p.name}</h1>
             <div className="flex items-baseline gap-3 mt-5 tnum">
               <span className="text-2xl font-semibold">{egp(price)}</span>
-              {p.compareAt && <span className="text-stone line-through">{egp(p.compareAt + (price - p.price))}</span>}
+              {p.compareAt && p.compareAt > price && <span className="text-stone line-through">{egp(p.compareAt)}</span>}
             </div>
             <p className="text-fahmy/80 leading-relaxed mt-5 max-w-[52ch] text-[17px]">{p.description}</p>
 
             {p.variants.length > 0 && (
               <fieldset className="mt-8">
-                <legend className="text-sm text-stone mb-3">{p.variantLabel || "Option"}</legend>
-                <div className="flex flex-wrap gap-2">
-                  {p.variants.map((v) => (
-                    <button key={v.id} type="button" onClick={() => setVariant(v.id)} aria-pressed={variant === v.id}
-                      className={cx("h-11 px-4 rounded-full border text-sm transition-colors", variant === v.id ? "bg-fahmy text-sand border-fahmy" : "border-fahmy/20 hover:border-fahmy")}>
-                      {v.label}{v.priceDelta !== 0 && <span className={variant === v.id ? "text-sand/60" : "text-stone"}> {v.priceDelta > 0 ? "+" : "−"}{Math.abs(v.priceDelta)}</span>}
-                    </button>
-                  ))}
+                <legend className="text-sm text-stone mb-3">
+                  Choose {(p.variantLabel || "an option").toLowerCase()}
+                  {selected && <span className="text-fahmy">: {selected.label}</span>}
+                </legend>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="radiogroup" aria-label={p.variantLabel || "Option"}>
+                  {p.variants.map((v) => {
+                    const on = variant === v.id;
+                    return (
+                      <button key={v.id} type="button" role="radio" aria-checked={on} onClick={() => setVariant(v.id)}
+                        className={cx("text-left rounded-md border px-3.5 py-3 transition-colors", on ? "bg-fahmy text-sand border-fahmy" : "border-fahmy/20 hover:border-fahmy")}>
+                        <span className="block text-[15px] font-medium tnum">{v.label}</span>
+                        <span className={cx("block text-sm tnum mt-0.5", on ? "text-sand/70" : "text-stone")}>{egp(v.price)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </fieldset>
             )}

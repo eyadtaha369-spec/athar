@@ -1,5 +1,9 @@
 import type { Product, Order, OrderStatus, Settings } from "./types";
 import { FLAG_PRODUCTS, LIFESTYLE } from "./catalog";
+import { applySizePresets, normalizeProduct } from "./pricing";
+
+// Seed entries written with the older "base price + difference" option format; normalised below.
+type LegacyProduct = Omit<Product, "variants"> & { variants: { id: string; label: string; priceDelta: number }[] };
 
 const now = Date.now();
 const daysAgo = (d: number, h = 0) => new Date(now - d * 864e5 - h * 36e5).toISOString();
@@ -24,7 +28,7 @@ const phoneModels = [
   { id: "rn13", label: "Redmi Note 13", priceDelta: -30 },
 ];
 
-const BASE: Product[] = [
+const BASE: LegacyProduct[] = [
   {
     id: "p1", slug: "giza-at-dusk", name: "Giza at Dusk", nameAr: "الجيزة وقت الغروب",
     category: "posters", price: 350, stock: 40, active: true, featured: true,
@@ -151,8 +155,8 @@ const BASE: Product[] = [
 
 export const SEED_PRODUCTS: Product[] = [
   ...FLAG_PRODUCTS,
-  ...BASE.map((p) => ({ ...p, ...(LIFESTYLE[p.id] ?? {}) })),
-];
+  ...BASE.map((p) => normalizeProduct({ ...p, ...(LIFESTYLE[p.id] ?? {}) })),
+].map(applySizePresets);
 
 export const SEED_SETTINGS: Settings = {
   instapay: { handle: "athar@instapay", name: "ATHAR Store" },
@@ -217,7 +221,7 @@ export function seedOrders(products: Product[]): Order[] {
       return {
         productId: p.id, name: p.name, variant: v?.label,
         custom: p.customText ? (p.category === "flags" ? "Ahly Forever" : n[0].split(" ")[0]) : undefined,
-        unitPrice: p.price + (v?.priceDelta ?? 0), qty,
+        unitPrice: v?.price ?? p.price, qty,
       };
     });
     const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);

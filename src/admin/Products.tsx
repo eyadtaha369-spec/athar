@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ImagePlus, Plus, Search, Trash2, X } from "lucide-react";
 import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
+import { SIZE_PRESETS, fromPrice, presetVariants } from "../lib/pricing";
 import { Forbidden, PageHead, can } from "./AdminLayout";
 import { ProductImage } from "../components/ui";
 import { CATEGORY_LABEL, compressImage, cx, egp, uid } from "../lib/utils";
@@ -16,8 +17,8 @@ const PALETTES: [string, string, string][] = [
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "product-" + uid();
 
 const blank = (): Product => ({
-  id: uid(), slug: "", name: "", nameAr: "", category: "posters", price: 0, stock: 0, active: true, featured: false,
-  description: "", details: [], variants: [], variantLabel: "Size", images: [], art: "pyramids", palette: PALETTES[0], createdAt: new Date().toISOString(),
+  id: uid(), slug: "", name: "", nameAr: "", category: "posters", price: fromPrice(presetVariants("posters"), 0), stock: 0, active: true, featured: false,
+  description: "", details: [], variants: presetVariants("posters"), variantLabel: "Size", images: [], art: "pyramids", palette: PALETTES[0], createdAt: new Date().toISOString(),
 });
 
 function Editor({ initial, onClose }: { initial: Product; onClose: () => void }) {
@@ -28,6 +29,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
   const [err, setErr] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
+  const preset = SIZE_PRESETS[p.category];
   const up = <K extends keyof Product>(k: K, v: Product[K]) => setP((x) => ({ ...x, [k]: v }));
 
   const addImages = async (files: FileList | null) => {
@@ -43,11 +45,12 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
   const save = () => {
     const e: Record<string, string> = {};
     if (!p.name.trim()) e.name = "Give the product a name.";
-    if (!(p.price > 0)) e.price = "Enter a price above 0.";
+    if (!p.variants.length && !(p.price > 0)) e.price = "Enter a selling price above 0.";
+    if (p.variants.some((v) => !(v.price > 0))) e.variants = "Every size needs a selling price above 0.";
     if (p.stock < 0 || !Number.isFinite(p.stock)) e.stock = "Stock can't be negative.";
     const slug = p.slug.trim() || slugify(p.name);
     if (db.products.some((x) => x.slug === slug && x.id !== p.id)) e.slug = "Another product already uses this link.";
-    if (p.variants.some((v) => !v.label.trim())) e.variants = "Every option needs a name, or remove the empty one.";
+    if (p.variants.some((v) => !v.label.trim())) e.variants = "Every size needs a name, or remove the empty one.";
     setErr(e);
     if (Object.keys(e).length) return;
     saveProduct({ ...p, slug, name: p.name.trim(), details: detailsText.split("\n").map((s) => s.trim()).filter(Boolean) });
@@ -116,17 +119,70 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
             <div><label htmlFor="pe-ar" className="label">Name (Arabic)</label><input id="pe-ar" dir="rtl" className="field font-ar" value={p.nameAr} onChange={(e) => up("nameAr", e.target.value)} /></div>
             <div>
               <label htmlFor="pe-cat" className="label">Category</label>
-              <select id="pe-cat" className="field" value={p.category} onChange={(e) => { const c = e.target.value as Category; setP((x) => ({ ...x, category: c, art: x.category === c ? x.art : ART_FOR[c] })); }}>
+              <select id="pe-cat" className="field" value={p.category} onChange={(e) => {
+                const c = e.target.value as Category;
+                setP((x) => {
+                  // swap in the new category's price list if the sizes are still the old category's list (or empty)
+                  const untouched = !x.variants.length || JSON.stringify(x.variants) === JSON.stringify(presetVariants(x.category));
+                  const next = presetVariants(c);
+                  return { ...x, category: c, art: x.category === c ? x.art : ART_FOR[c], ...(untouched ? { variants: next, variantLabel: next.length ? "Size" : x.variantLabel } : {}) };
+                });
+              }}>
                 {Object.entries(CATEGORY_LABEL).map(([k, v]) => <option key={k} value={k}>{v.en}</option>)}
               </select>
             </div>
             <div><label htmlFor="pe-slug" className="label">Link</label><input id="pe-slug" className="field" placeholder={slugify(p.name || "new product")} value={p.slug} onChange={(e) => up("slug", slugify(e.target.value))} /><E k="slug" /></div>
           </section>
 
-          <section className="grid grid-cols-3 gap-4">
-            <div><label htmlFor="pe-price" className="label">Price (EGP)</label><input id="pe-price" type="number" min={0} className="field tnum" value={p.price || ""} onChange={(e) => up("price", Number(e.target.value))} /><E k="price" /></div>
-            <div><label htmlFor="pe-compare" className="label">Old price</label><input id="pe-compare" type="number" min={0} className="field tnum" placeholder="Optional" value={p.compareAt ?? ""} onChange={(e) => up("compareAt", e.target.value ? Number(e.target.value) : undefined)} /></div>
-            <div><label htmlFor="pe-stock" className="label">In stock</label><input id="pe-stock" type="number" min={0} className="field tnum" value={p.stock} onChange={(e) => up("stock", Number(e.target.value))} /><E k="stock" /></div>
+          {/* Sizes and selling prices */}
+          <section className="rounded-xl border border-fahmy/15 bg-paper p-4 md:p-5">
+            <div className="flex flex-wrap items-end gap-3 mb-4">
+              <div className="flex-1 min-w-[200px]">
+                <h3 className="font-semibold">Sizes and prices</h3>
+                <p className="text-sm text-stone">Each size has its own selling price. Customers only see these prices.</p>
+              </div>
+              {preset && (
+                <button type="button" className="btn-line h-10 px-4 text-sm" onClick={() => setP((x) => ({ ...x, variants: presetVariants(x.category), variantLabel: "Size" }))}>
+                  Use the {preset.label.toLowerCase()} list
+                </button>
+              )}
+            </div>
+            {p.variants.length > 0 && (
+              <div className="mb-3 max-w-[260px]">
+                <label htmlFor="pe-vlabel" className="label">Option name</label>
+                <input id="pe-vlabel" className="field h-10" placeholder="Size" value={p.variantLabel ?? ""} onChange={(e) => up("variantLabel", e.target.value)} />
+              </div>
+            )}
+            {p.variants.length > 0 && (
+              <div className="grid grid-cols-[1fr_140px_48px] gap-2 text-xs text-stone px-1 mb-1"><span>Size / option</span><span>Selling price (EGP)</span><span /></div>
+            )}
+            <ul className="space-y-2">
+              {p.variants.map((v, i) => (
+                <li key={v.id} className="grid grid-cols-[1fr_140px_48px] gap-2">
+                  <input className="field h-11" placeholder="e.g. 50×70 cm" value={v.label} aria-label={`Size ${i + 1}`}
+                    onChange={(e) => up("variants", p.variants.map((x) => (x.id === v.id ? { ...x, label: e.target.value } : x)))} />
+                  <input type="number" min={0} className="field h-11 tnum" value={v.price || ""} aria-label={`Selling price for size ${i + 1}`}
+                    onChange={(e) => up("variants", p.variants.map((x) => (x.id === v.id ? { ...x, price: Number(e.target.value) } : x)))} />
+                  <button type="button" onClick={() => up("variants", p.variants.filter((x) => x.id !== v.id))} className="h-11 grid place-items-center rounded-xl hover:bg-ramly" aria-label={`Remove size ${v.label || i + 1}`}><X size={16} /></button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="btn h-10 px-3 text-sm text-topy mt-2" onClick={() => up("variants", [...p.variants, { id: uid(), label: "", price: p.variants[p.variants.length - 1]?.price ?? p.price ?? 0 }])}>
+              <Plus size={16} />Add a size
+            </button>
+            <E k="variants" />
+            {p.variants.length === 0 ? (
+              <div className="grid grid-cols-2 gap-4 mt-3 max-w-md">
+                <div><label htmlFor="pe-price" className="label">Selling price (EGP)</label><input id="pe-price" type="number" min={0} className="field tnum" value={p.price || ""} onChange={(e) => up("price", Number(e.target.value))} /><E k="price" /></div>
+                <div><label htmlFor="pe-compare" className="label">Old price <span className="text-stone/70">(optional)</span></label><input id="pe-compare" type="number" min={0} className="field tnum" value={p.compareAt ?? ""} onChange={(e) => up("compareAt", e.target.value ? Number(e.target.value) : undefined)} /></div>
+              </div>
+            ) : (
+              <p className="text-sm text-stone mt-3">Shown in the store as <b className="text-fahmy tnum">{new Set(p.variants.map((v) => v.price)).size > 1 ? "from " : ""}{egp(fromPrice(p.variants, p.price))}</b>.</p>
+            )}
+          </section>
+
+          <section className="max-w-[200px]">
+            <label htmlFor="pe-stock" className="label">In stock</label><input id="pe-stock" type="number" min={0} className="field tnum" value={p.stock} onChange={(e) => up("stock", Number(e.target.value))} /><E k="stock" />
           </section>
 
           <section className="flex flex-wrap gap-3">
@@ -142,26 +198,6 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
             <div><label htmlFor="pe-details" className="label">Details <span className="text-stone/70">(one per line)</span></label><textarea id="pe-details" rows={4} className="field" value={detailsText} onChange={(e) => setDetailsText(e.target.value)} /></div>
           </section>
 
-          <section>
-            <div className="flex items-end gap-3 mb-3">
-              <div className="flex-1"><label htmlFor="pe-vlabel" className="label">Options <span className="text-stone/70">(sizes, phone models…)</span></label><input id="pe-vlabel" className="field" placeholder="Option name, e.g. Size" value={p.variantLabel ?? ""} onChange={(e) => up("variantLabel", e.target.value)} /></div>
-              <button type="button" className="btn-line h-12" onClick={() => up("variants", [...p.variants, { id: uid(), label: "", priceDelta: 0 }])}><Plus size={16} />Add option</button>
-            </div>
-            {p.variants.length === 0 && <p className="text-sm text-stone">No options. Customers buy this product as it is.</p>}
-            <ul className="space-y-2">
-              {p.variants.map((v, i) => (
-                <li key={v.id} className="flex gap-2">
-                  <input className="field flex-1" placeholder="e.g. A2 — 42×59 cm" value={v.label} aria-label={`Option ${i + 1} name`}
-                    onChange={(e) => up("variants", p.variants.map((x) => (x.id === v.id ? { ...x, label: e.target.value } : x)))} />
-                  <input type="number" className="field w-32 tnum" value={v.priceDelta} aria-label={`Option ${i + 1} price change`} title="Added to the base price (use a negative number for cheaper)"
-                    onChange={(e) => up("variants", p.variants.map((x) => (x.id === v.id ? { ...x, priceDelta: Number(e.target.value) } : x)))} />
-                  <button type="button" onClick={() => up("variants", p.variants.filter((x) => x.id !== v.id))} className="w-12 h-12 grid place-items-center rounded-xl hover:bg-ramly" aria-label="Remove option"><X size={16} /></button>
-                </li>
-              ))}
-            </ul>
-            {p.variants.length > 0 && <p className="text-xs text-stone mt-2">The number is added to the base price. Use 0 for the same price.</p>}
-            <E k="variants" />
-          </section>
 
           <section>
             <label className="flex items-center gap-3 cursor-pointer mb-3">
@@ -248,7 +284,7 @@ export default function Products() {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-stone">{CATEGORY_LABEL[p.category].en}</td>
-                    <td className="px-4 py-3 tnum">{egp(p.price)}{p.variants.length > 1 && <span className="block text-xs text-stone">{p.variants.length} options</span>}</td>
+                    <td className="px-4 py-3 tnum">{new Set(p.variants.map((v) => v.price)).size > 1 && <span className="text-stone">from </span>}{egp(p.price)}{p.variants.length > 1 && <span className="block text-xs text-stone">{p.variants.length} sizes</span>}</td>
                     <td className="px-4 py-3">
                       <input type="number" min={0} value={p.stock} aria-label={`Stock for ${p.name}`}
                         onChange={(e) => saveProduct({ ...p, stock: Math.max(0, Number(e.target.value)) })}

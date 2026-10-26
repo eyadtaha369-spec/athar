@@ -8,9 +8,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AdminUser, CartItem, Notice, Order, OrderStatus, Product, Settings } from "./types";
 import { SEED_PRODUCTS, SEED_SETTINGS, seedOrders } from "./seed";
 import { sha256, uid } from "./utils";
+import { fromPrice, normalizeProduct } from "./pricing";
 
-const KEY = "athar:db:v3";
-const CART_KEY = "athar:cart:v1";
+const KEY = "athar:db:v4";
+const CART_KEY = "athar:cart:v2";
 const SESSION_KEY = "athar:admin-session";
 
 interface DB {
@@ -95,7 +96,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const raw = safeGet(KEY);
-      if (raw) { try { setDb(JSON.parse(raw)); return; } catch { /* fall through */ } }
+      if (raw) { try { const d: DB = JSON.parse(raw); setDb({ ...d, products: d.products.map(normalizeProduct) }); return; } catch { /* fall through */ } }
       const d = await freshDB();
       safeSet(KEY, JSON.stringify(d));
       setDb(d);
@@ -179,9 +180,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return null;
     },
     logout: () => { try { sessionStorage.removeItem(SESSION_KEY); } catch {} setMeId(null); },
-    saveProduct: (p) => commit((d) => ({
+    saveProduct: (raw) => commit((d) => {
+      const p = { ...raw, price: fromPrice(raw.variants, raw.price) };
+      return {
       ...d, products: d.products.some((x) => x.id === p.id) ? d.products.map((x) => (x.id === p.id ? p : x)) : [p, ...d.products],
-    })),
+      };
+    }),
     deleteProduct: (id) => commit((d) => ({ ...d, products: d.products.filter((p) => p.id !== id) })),
     setOrderStatus: (id, s, note) => commit((d) => ({
       ...d, orders: d.orders.map((o) => {
@@ -242,5 +246,5 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
 /** Price helpers shared by storefront and admin */
 export function linePrice(p: Product, variantId?: string) {
-  return p.price + (p.variants.find((v) => v.id === variantId)?.priceDelta ?? 0);
+  return p.variants.find((v) => v.id === variantId)?.price ?? p.price;
 }

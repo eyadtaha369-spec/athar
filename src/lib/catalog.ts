@@ -1,4 +1,5 @@
 import type { Product } from "./types";
+import { fromPrice, presetVariants } from "./pricing";
 
 const ago = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
 
@@ -7,14 +8,6 @@ const flagDetails = [
   "Colours stay sharp in direct sun",
   "Four brass grommets, wall hooks included",
   "Machine washable, cold and gentle",
-];
-const rect = [
-  { id: "90x60", label: "90×60 cm", priceDelta: 0 },
-  { id: "150x100", label: "150×100 cm", priceDelta: 250 },
-];
-const square = [
-  { id: "100x100", label: "100×100 cm", priceDelta: 0 },
-  { id: "150x150", label: "150×150 cm", priceDelta: 300 },
 ];
 
 type F = [slug: string, name: string, nameAr: string, collection: string, shape: "rect" | "square", desc: string, featured?: boolean, stock?: number];
@@ -38,11 +31,11 @@ export const FLAG_PRODUCTS: Product[] = FLAGS.map(([slug, name, nameAr, collecti
   id: "f" + (i + 1),
   slug, name, nameAr, collection,
   category: "flags",
-  price: shape === "square" ? 450 : 350,
+  price: fromPrice(presetVariants("flags"), 340),
   stock, active: true, featured,
   description,
   details: flagDetails,
-  variants: shape === "square" ? square : rect,
+  variants: presetVariants("flags"),
   variantLabel: "Size",
   images: ["asset:flags/" + slug + "-cover", "asset:flags/" + slug],
   art: "flag",
@@ -56,7 +49,7 @@ export const LIFESTYLE: Record<string, Partial<Product>> = {
     name: "Signature Laptop Bag", nameAr: "شنطة لابتوب أثر", slug: "signature-laptop-bag",
     description: "Charcoal canvas laptop bag with a padded compartment, two top handles and the أثر mark stitched on the front pocket.",
     details: ["Water-resistant canvas", "Padded laptop compartment", "Front zip pocket for chargers", "Detachable shoulder strap"],
-    images: ["asset:life/laptop-bag", "asset:life/bag-detail"], price: 850,
+    images: ["asset:life/laptop-bag", "asset:life/bag-detail"],
   },
   p9: {
     name: "Signature Phone Case", nameAr: "جراب أثر", slug: "signature-phone-case",

@@ -7,6 +7,7 @@ import type { Product } from "../lib/types";
 import { cx, egp } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
+import { hasPriceRange } from "../lib/pricing";
 
 /** The أثر calligraphy mark from the brand guidelines, tinted with currentColor. */
 export function Mark({ className = "", label = "أثر" }: { className?: string; label?: string }) {
@@ -54,7 +55,7 @@ export function ProductCard({ p, dark = false, size = "md" }: { p: Product; dark
             <p className={cx("font-ar text-sm mt-0.5", dark ? "text-sand/50" : "text-stone")} lang="ar" dir="rtl">{p.nameAr}</p>
           </div>
           <div className="text-right shrink-0 tnum">
-            <div className="text-[15px]">{p.variants.length > 1 && <span className={dark ? "text-sand/50" : "text-stone"}>from </span>}{egp(p.price)}</div>
+            <div className="text-[15px]">{hasPriceRange(p) && <span className={dark ? "text-sand/50" : "text-stone"}>from </span>}{egp(p.price)}</div>
             {p.compareAt && <div className={cx("text-xs line-through", dark ? "text-sand/40" : "text-stone")}>{egp(p.compareAt)}</div>}
           </div>
         </div>
