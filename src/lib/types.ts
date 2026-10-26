@@ -59,7 +59,16 @@ export interface Order {
   subtotal: number;
   shippingFee: number;
   total: number;
-  payment: { method: PayMethod; reference?: string; senderName?: string; receipt: string };
+  payment: {
+    method: PayMethod;
+    reference?: string;
+    senderName?: string;
+    receipt: string;          // screenshot of the deposit transfer
+    deposit: number;          // amount the customer says they transferred
+    verifiedDeposit?: number; // amount the admin confirmed on the receipt
+  };
+  codDue: number;             // balance collected in cash on delivery
+  codCollected?: boolean;
   status: OrderStatus;
   history: { status: OrderStatus; at: string; by?: string; note?: string }[];
   paymentVerified: boolean;
@@ -92,5 +101,6 @@ export interface Settings {
   shippingCairoAlex: number;
   shippingOther: number;
   freeShippingOver: number;
+  minDeposit: number;        // smallest deposit accepted at checkout (EGP)
   whatsapp: string;
 }

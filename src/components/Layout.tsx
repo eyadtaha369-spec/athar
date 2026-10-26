@@ -150,7 +150,7 @@ function CartDrawer() {
                 </ul>
                 <div className="px-6 py-5 border-t border-fahmy/10">
                   <div className="flex justify-between text-lg mb-1"><span>Subtotal</span><span className="tnum font-semibold">{egp(subtotal)}</span></div>
-                  <p className="text-sm text-stone mb-4">Paid by InstaPay, mobile wallet or bank transfer. Delivery calculated at checkout.</p>
+                  <p className="text-sm text-stone mb-4">Pay a deposit from {settings.minDeposit} EGP now, the rest in cash on delivery. Delivery calculated at checkout.</p>
                   <button className="btn-topy w-full" onClick={() => { setCartOpen(false); nav("/checkout"); }}>Go to checkout</button>
                 </div>
               </>

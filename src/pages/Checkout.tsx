@@ -22,6 +22,7 @@ export default function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [drag, setDrag] = useState(false);
+  const [depositStr, setDepositStr] = useState(String(s.minDeposit));
 
   const rows = cart.map((c) => ({ c, p: db.products.find((p) => p.id === c.productId)! })).filter((r) => r.p);
   const subtotal = rows.reduce((t, r) => t + linePrice(r.p, r.c.variantId) * r.c.qty, 0);
@@ -31,6 +32,15 @@ export default function Checkout() {
     return isCoreZone(f.governorate) ? s.shippingCairoAlex : s.shippingOther;
   }, [f.governorate, subtotal, s]);
   const total = subtotal + (fee ?? 0);
+  // Deposit: at least the minimum (or the whole order if it costs less), never more than the total
+  const minDep = Math.min(s.minDeposit, total || s.minDeposit);
+  const deposit = Math.round(Number(depositStr) || 0);
+  const cod = Math.max(0, total - deposit);
+  const depositError =
+    !depositStr.trim() ? `Enter the deposit you transferred. The minimum is ${egp(minDep)}.`
+    : deposit < minDep ? `The deposit must be at least ${egp(minDep)}.`
+    : fee !== null && deposit > total ? `The deposit can't be more than the order total (${egp(total)}).`
+    : "";
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setF((x) => ({ ...x, [k]: e.target.value }));
@@ -59,7 +69,8 @@ export default function Checkout() {
     if (!f.city.trim()) er.city = "Enter your city or area.";
     if (f.address.trim().length < 8) er.address = "Add the street, building and apartment number.";
     if (!f.sender.trim()) er.sender = "Enter the name on the account you transferred from.";
-    if (!receipt) er.receipt = "Upload a screenshot of your transfer to place the order.";
+    if (depositError) er.deposit = depositError;
+    if (!receipt) er.receipt = "Upload a screenshot of your deposit transfer to place the order.";
     const short = rows.find(({ c, p }) => c.qty > p.stock);
     if (short) er.stock = `Only ${short.p.stock} of ${short.p.name} left. Lower the quantity in your bag to continue.`;
     setErrors(er);
@@ -77,7 +88,7 @@ export default function Checkout() {
         custom: c.custom, unitPrice: linePrice(p, c.variantId), qty: c.qty,
       })),
       subtotal, shippingFee: fee ?? 0, total,
-      payment: { method, receipt, senderName: f.sender.trim(), reference: f.reference.trim() || undefined },
+      payment: { method, receipt, deposit, senderName: f.sender.trim(), reference: f.reference.trim() || undefined },
     });
     clearCart();
     nav(`/order/${order.number}`, { state: { fresh: true } });
@@ -104,7 +115,7 @@ export default function Checkout() {
   return (
     <div className="pt-24 md:pt-32 pb-24 gutter max-w-[1300px] mx-auto">
       <h1 className="display text-5xl md:text-8xl">Checkout</h1>
-      <p className="text-stone mt-3 max-w-[60ch]">Payment is by transfer only. Send the total, upload your receipt below, and we'll confirm your order on WhatsApp.</p>
+      <p className="text-stone mt-3 max-w-[60ch]">Pay a deposit of at least {egp(s.minDeposit)} by transfer to place your order. You pay the rest in cash when it arrives.</p>
 
       <form onSubmit={submit} noValidate className="grid lg:grid-cols-[1.5fr_1fr] gap-10 lg:gap-14 mt-10 items-start">
         <div className="space-y-12">
@@ -154,7 +165,32 @@ export default function Checkout() {
 
           {/* Payment */}
           <section>
-            <h2 className="text-xl font-semibold mb-5 flex items-center gap-3"><span className="tnum w-7 h-7 rounded-full bg-fahmy text-sand text-sm grid place-items-center">2</span>Transfer the total</h2>
+            <h2 className="text-xl font-semibold mb-5 flex items-center gap-3"><span className="tnum w-7 h-7 rounded-full bg-fahmy text-sand text-sm grid place-items-center">2</span>Pay your deposit</h2>
+            <div data-field="deposit" className="rounded-2xl border border-fahmy/15 bg-paper p-4 md:p-5 mb-4">
+              <label htmlFor="deposit" className="label">Deposit amount (EGP)</label>
+              <div className="flex flex-wrap gap-2 items-center">
+                <input id="deposit" type="number" inputMode="numeric" min={minDep} max={total || undefined} step={10}
+                  className={cx("field tnum w-40 text-lg font-semibold", errors.deposit && "border-topy")}
+                  value={depositStr} onChange={(e) => { setDepositStr(e.target.value); if (errors.deposit) setErrors((er) => ({ ...er, deposit: "" })); }} />
+                {[
+                  { l: `Minimum ${egp(minDep)}`, v: minDep },
+                  ...(fee !== null && total > minDep * 2 ? [{ l: "Half", v: Math.ceil(total / 2) }] : []),
+                  ...(fee !== null ? [{ l: "Full amount", v: total }] : []),
+                ].map((c) => (
+                  <button key={c.l} type="button" onClick={() => { setDepositStr(String(c.v)); setErrors((er) => ({ ...er, deposit: "" })); }}
+                    className={cx("h-10 px-3 rounded-md border text-sm tnum", deposit === c.v ? "bg-fahmy text-sand border-fahmy" : "border-fahmy/20 hover:border-fahmy")}>
+                    {c.l}
+                  </button>
+                ))}
+              </div>
+              <Err k="deposit" />
+              {!errors.deposit && depositError && fee !== null && <p className="text-topy text-sm mt-1.5">{depositError}</p>}
+              <p className="text-sm text-stone mt-3">
+                {fee === null ? "Choose your governorate above to see what's left to pay on delivery."
+                  : cod > 0 ? <>You'll pay <b className="text-fahmy tnum">{egp(cod)}</b> in cash to the courier when your order arrives.</>
+                  : <>You're paying the full amount now. Nothing to pay on delivery.</>}
+              </p>
+            </div>
             <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Payment method">
               {methods.map((m) => (
                 <button type="button" role="radio" aria-checked={method === m.k} key={m.k} onClick={() => setMethod(m.k)}
@@ -173,10 +209,10 @@ export default function Checkout() {
               <motion.div key={method} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
                 className="mt-4 rounded-2xl bg-fahmy text-sand p-5 md:p-6">
                 <div className="flex flex-wrap items-baseline justify-between gap-2 pb-4 border-b border-sand/15">
-                  <span className="text-sand/70">Amount to transfer</span>
-                  <span className="display tnum text-3xl">{fee === null ? "—" : egp(total)}</span>
+                  <span className="text-sand/70">Transfer your deposit</span>
+                  <span className="display tnum text-3xl">{deposit >= minDep ? egp(deposit) : "—"}</span>
                 </div>
-                {fee === null && <p className="text-sm text-sand/60 pt-3">Choose your governorate above to see the final amount with delivery.</p>}
+                {fee !== null && cod > 0 && <p className="text-sm text-sand/60 pt-3">Then <span className="text-sand tnum">{egp(cod)}</span> in cash on delivery.</p>}
                 <div className="[&_.text-stone]:text-sand/50 [&_button]:border-sand/25 [&_button:hover]:border-sand divide-y divide-sand/10">
                   {method === "instapay" && <><CopyRow label="InstaPay address" value={s.instapay.handle} /><CopyRow label="Account name" value={s.instapay.name} /></>}
                   {method === "wallet" && <><CopyRow label="Wallet number" value={s.wallet.number} /><CopyRow label="Name" value={s.wallet.name} /></>}
@@ -189,7 +225,7 @@ export default function Checkout() {
 
           {/* Receipt */}
           <section>
-            <h2 className="text-xl font-semibold mb-5 flex items-center gap-3"><span className="tnum w-7 h-7 rounded-full bg-fahmy text-sand text-sm grid place-items-center">3</span>Upload your receipt</h2>
+            <h2 className="text-xl font-semibold mb-5 flex items-center gap-3"><span className="tnum w-7 h-7 rounded-full bg-fahmy text-sand text-sm grid place-items-center">3</span>Upload your deposit receipt</h2>
             <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div data-field="sender">
                 <label htmlFor="sender" className="label">Name on the sending account</label>
@@ -208,7 +244,7 @@ export default function Checkout() {
                   <img src={receipt} alt="Your transfer receipt" className="w-20 h-28 object-cover rounded-lg bg-ramly" />
                   <div className="flex-1">
                     <p className="font-medium flex items-center gap-2"><Check size={16} className="text-zeyti" /> Receipt attached</p>
-                    <p className="text-sm text-stone">Make sure the amount and date are readable.</p>
+                    <p className="text-sm text-stone">Make sure the amount ({egp(deposit)}) and date are readable.</p>
                   </div>
                   <button type="button" onClick={() => { setReceipt(""); if (fileRef.current) fileRef.current.value = ""; }} className="w-10 h-10 grid place-items-center rounded-full hover:bg-ramly" aria-label="Remove receipt"><X size={18} /></button>
                 </div>
@@ -250,10 +286,12 @@ export default function Checkout() {
             <div className="flex justify-between"><dt className="text-stone">Subtotal</dt><dd>{egp(subtotal)}</dd></div>
             <div className="flex justify-between"><dt className="text-stone">Delivery</dt><dd>{fee === null ? "Choose governorate" : fee === 0 ? "Free" : egp(fee)}</dd></div>
             <div className="flex justify-between text-lg font-semibold pt-2 border-t border-fahmy/10"><dt>Total</dt><dd>{egp(total)}</dd></div>
+            <div className="flex justify-between pt-2"><dt className="text-stone">Deposit now</dt><dd className="font-medium">{deposit >= minDep ? egp(Math.min(deposit, total || deposit)) : "—"}</dd></div>
+            <div className="flex justify-between"><dt className="text-stone">Cash on delivery</dt><dd className="font-medium">{fee === null ? "—" : egp(cod)}</dd></div>
           </dl>
           {errors.stock && <p className="text-topy text-sm mt-4" role="alert" data-field="stock">{errors.stock}</p>}
           <button type="submit" className="btn-topy w-full mt-6" disabled={submitting || uploading}>{submitting ? "Placing order…" : "Place order"}</button>
-          <p className="text-xs text-stone mt-3 leading-relaxed">Your order is reserved as soon as you place it. We verify your transfer and confirm on WhatsApp, usually within a few hours.</p>
+          <p className="text-xs text-stone mt-3 leading-relaxed">Your order is reserved as soon as you place it. It stays pending until we verify your deposit, usually within a few hours, and we confirm on WhatsApp.</p>
         </aside>
       </form>
     </div>

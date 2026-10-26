@@ -4,12 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Search, X, ZoomIn } from "lucide-react";
 import { useStore } from "../lib/store";
 import { PageHead } from "./AdminLayout";
-import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
+import { STATUS_META, cx, depositOf, egp, fmtDate } from "../lib/utils";
 import type { Order, OrderStatus } from "../lib/types";
 
 const TABS: (OrderStatus | "all")[] = ["all", "pending", "confirmed", "shipped", "delivered", "cancelled"];
 const NEXT: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
-  pending: { to: "confirmed", label: "Confirm payment" },
+  pending: { to: "confirmed", label: "Approve deposit" },
   confirmed: { to: "shipped", label: "Mark as shipped" },
   shipped: { to: "delivered", label: "Mark as delivered" },
 };
@@ -25,8 +25,12 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
   const [cancelling, setCancelling] = useState(false);
   const [note, setNote] = useState("");
   const next = NEXT[o.status];
+  const { db } = useStore();
+  const minDeposit = db.settings.minDeposit;
+  const [amount, setAmount] = useState(String(o.payment.deposit));
+  const amt = Math.round(Number(amount) || 0);
 
-  const waText = `Hi ${o.customer.name.split(" ")[0]}, this is ATHAR. Your order ${o.number} (${egp(o.total)}) is ${STATUS_META[o.status].label.toLowerCase()}. Thank you!`;
+  const waText = `Hi ${o.customer.name.split(" ")[0]}, this is ATHAR. Your order ${o.number} (${egp(o.total)}) is ${STATUS_META[o.status].label.toLowerCase()}.${o.codDue > 0 ? ` Please have ${o.codDue} EGP in cash ready for the courier.` : ""} Thank you!`;
 
   return (
     <>
@@ -43,33 +47,48 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
         <div className="px-5 md:px-7 py-6 space-y-6">
           {o.sample && <p className="text-xs rounded-lg bg-ramly px-3 py-2 text-stone">Sample order for demonstration.</p>}
 
-          {/* Payment verification — the main job on this screen */}
+          {/* Deposit verification — the main job on this screen */}
           <section className="rounded-2xl bg-paper border border-fahmy/10 p-5">
-            <div className="flex justify-between items-start gap-4">
+            <div className="flex flex-wrap justify-between items-start gap-4">
               <div>
-                <h3 className="font-semibold">Payment</h3>
+                <h3 className="font-semibold">Deposit</h3>
                 <p className="text-sm text-stone mt-0.5">{METHOD[o.payment.method]} from {o.payment.senderName || "—"}</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-stone">Expected amount</p>
-                <p className="display tnum text-2xl">{egp(o.total)}</p>
+              <div className="grid grid-cols-3 gap-4 text-right tnum">
+                <div><p className="text-xs text-stone">Order total</p><p className="font-semibold">{egp(o.total)}</p></div>
+                <div><p className="text-xs text-stone">{o.paymentVerified ? "Deposit verified" : "Deposit claimed"}</p><p className="display text-2xl">{egp(depositOf(o))}</p></div>
+                <div><p className="text-xs text-stone">Cash on delivery</p><p className="display text-2xl text-topy">{egp(o.codDue)}</p></div>
               </div>
             </div>
-            <div className="grid sm:grid-cols-[160px_1fr] gap-5 mt-4">
-              <button onClick={() => setZoom(true)} className="group relative rounded-xl overflow-hidden bg-ramly aspect-[9/14] border border-fahmy/10" aria-label="Open receipt full size">
-                <img src={o.payment.receipt} alt="Customer transfer receipt" className="w-full h-full object-cover object-top" />
+            <div className="grid sm:grid-cols-[180px_1fr] gap-5 mt-5">
+              <button onClick={() => setZoom(true)} className="group relative rounded-xl overflow-hidden bg-ramly aspect-[9/14] border border-fahmy/10" aria-label="Open deposit receipt full size">
+                <img src={o.payment.receipt} alt="Customer deposit receipt" className="w-full h-full object-cover object-top" />
                 <span className="absolute inset-0 bg-fahmy/0 group-hover:bg-fahmy/30 grid place-items-center text-sand opacity-0 group-hover:opacity-100 transition"><ZoomIn /></span>
+                <span className="absolute inset-x-0 bottom-0 bg-ink/70 text-sand text-[11px] py-1">Tap to enlarge</span>
               </button>
               <div className="space-y-3 text-sm">
                 <dl className="space-y-2">
                   <div className="flex justify-between gap-3"><dt className="text-stone">Reference</dt><dd className="tnum select-all">{o.payment.reference || "Not provided"}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-stone">Submitted</dt><dd>{fmtDate(o.createdAt, true)}</dd></div>
                 </dl>
-                <p className="text-stone leading-relaxed">Check the receipt shows <b className="text-fahmy tnum">{egp(o.total)}</b> sent to your account, and that the date is on or before the order date.</p>
-                <label className="flex items-center gap-3 rounded-xl border border-fahmy/15 p-3 cursor-pointer select-none">
-                  <input type="checkbox" className="w-5 h-5 accent-[#606859]" checked={o.paymentVerified} onChange={(e) => { verifyPayment(o.id, e.target.checked); toast(e.target.checked ? "Payment marked as verified" : "Verification removed"); }} />
-                  <span>Payment received and matches</span>
-                </label>
+                {o.status === "pending" ? (
+                  <div className="rounded-xl border border-fahmy/15 p-3 space-y-3">
+                    <p className="text-stone leading-relaxed">Check the receipt was sent to your account on or before the order date, then enter the amount it shows.</p>
+                    <div>
+                      <label htmlFor="verify-amt" className="label">Amount on the receipt (EGP)</label>
+                      <input id="verify-amt" type="number" min={0} className="field h-11 tnum w-40" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                    </div>
+                    {amt > 0 && amt !== o.payment.deposit && <p className="text-[#7A5317]">The customer entered {egp(o.payment.deposit)}. Cash on delivery will be {egp(Math.max(0, o.total - amt))}.</p>}
+                    {amt > 0 && amt < minDeposit && <p className="text-topy">This is below the {egp(minDeposit)} minimum deposit.</p>}
+                    <button className="btn-dark w-full" disabled={!(amt > 0) || amt > o.total}
+                      onClick={() => { verifyPayment(o.id, true, amt); setOrderStatus(o.id, "confirmed", `Deposit of ${amt} EGP verified`); toast(`${o.number} confirmed. ${egp(Math.max(0, o.total - amt))} to collect on delivery`); }}>
+                      <Check size={16} /> Approve deposit and confirm order
+                    </button>
+                    {amt > o.total && <p className="text-topy">The amount can't be more than the order total.</p>}
+                  </div>
+                ) : o.status !== "cancelled" && (
+                  <p className="flex items-center gap-2 text-zeyti"><Check size={16} /> Deposit of {egp(depositOf(o))} verified{o.codCollected ? `, ${egp(o.codDue)} cash collected` : ""}.</p>
+                )}
               </div>
             </div>
           </section>
@@ -77,22 +96,16 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
           {/* Status actions */}
           {o.status !== "delivered" && o.status !== "cancelled" && (
             <section className="flex flex-wrap gap-3">
-              {next && (
-                <button
-                  className="btn-dark flex-1"
-                  disabled={o.status === "pending" && !o.paymentVerified}
-                  title={o.status === "pending" && !o.paymentVerified ? "Tick “Payment received and matches” first" : undefined}
-                  onClick={() => { setOrderStatus(o.id, next.to); toast(`${o.number} ${STATUS_META[next.to].label.toLowerCase()}`); }}
-                >
-                  <Check size={16} /> {next.label}
+              {next && o.status !== "pending" && (
+                <button className="btn-dark flex-1" onClick={() => { setOrderStatus(o.id, next.to); toast(`${o.number} ${STATUS_META[next.to].label.toLowerCase()}`); }}>
+                  <Check size={16} /> {next.to === "delivered" && o.codDue > 0 ? `Delivered, ${egp(o.codDue)} cash collected` : next.label}
                 </button>
               )}
               {!cancelling ? (
-                <button className="btn-line" onClick={() => setCancelling(true)}>Cancel order</button>
+                <button className="btn-line" onClick={() => setCancelling(true)}>{o.status === "pending" ? "Reject and cancel" : "Cancel order"}</button>
               ) : null}
             </section>
           )}
-          {o.status === "pending" && !o.paymentVerified && <p className="text-sm text-stone -mt-3">Tick “Payment received and matches” to confirm this order.</p>}
           <AnimatePresence>
             {cancelling && (
               <motion.section initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
@@ -193,7 +206,7 @@ export default function Orders() {
 
   return (
     <>
-      <PageHead title="Orders" sub="Check each receipt, then move the order along." />
+      <PageHead title="Orders" sub="Verify each deposit receipt, then move the order along. The rest is collected in cash on delivery." />
       <div className="flex flex-wrap gap-3 items-center justify-between mb-5">
         <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-full">
           {TABS.map((t) => {
@@ -220,9 +233,9 @@ export default function Orders() {
       ) : (
         <div className="rounded-2xl bg-paper border border-fahmy/10 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[760px]">
+            <table className="w-full text-sm min-w-[980px]">
               <thead className="text-left text-stone border-b border-fahmy/10">
-                <tr><th className="font-normal px-4 py-3">Order</th><th className="font-normal px-4 py-3">Customer</th><th className="font-normal px-4 py-3">Items</th><th className="font-normal px-4 py-3">Payment</th><th className="font-normal px-4 py-3">Status</th><th className="font-normal px-4 py-3 text-right">Total</th></tr>
+                <tr><th className="font-normal px-4 py-3">Order</th><th className="font-normal px-4 py-3">Customer</th><th className="font-normal px-4 py-3">Items</th><th className="font-normal px-4 py-3">Receipt</th><th className="font-normal px-4 py-3">Deposit</th><th className="font-normal px-4 py-3">On delivery</th><th className="font-normal px-4 py-3">Status</th><th className="font-normal px-4 py-3 text-right">Total</th></tr>
               </thead>
               <tbody className="divide-y divide-fahmy/10">
                 {list.map((o) => (
@@ -230,9 +243,18 @@ export default function Orders() {
                     <td className="px-4 py-3.5"><button className="font-medium tnum hover:text-topy text-left" onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }}>{o.number}</button><p className="text-xs text-stone">{fmtDate(o.createdAt, true)}</p></td>
                     <td className="px-4 py-3.5"><p>{o.customer.name}</p><p className="text-xs text-stone">{o.shipping.governorate}</p></td>
                     <td className="px-4 py-3.5 text-stone max-w-[220px] truncate">{o.lines.map((l) => `${l.qty}× ${l.name}`).join(", ")}</td>
-                    <td className="px-4 py-3.5">
-                      {o.paymentVerified ? <span className="inline-flex items-center gap-1 text-zeyti"><Check size={14} />Verified</span> : o.status === "cancelled" ? <span className="text-stone">—</span> : <span className="text-[#7A5317]">To check</span>}
+                    <td className="px-4 py-2">
+                      <button onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }} className="block w-10 h-14 rounded-md overflow-hidden border border-fahmy/15 bg-ramly" aria-label={`Open ${o.number} deposit receipt`}>
+                        <img src={o.payment.receipt} alt="" className="w-full h-full object-cover object-top" loading="lazy" />
+                      </button>
                     </td>
+                    <td className="px-4 py-3.5 tnum">
+                      {egp(depositOf(o))}
+                      <span className={cx("block text-xs", o.paymentVerified ? "text-zeyti" : o.status === "cancelled" ? "text-stone" : "text-[#7A5317]")}>
+                        {o.paymentVerified ? "Verified" : o.status === "cancelled" ? "—" : "To check"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 tnum">{o.codDue > 0 ? egp(o.codDue) : <span className="text-stone">Paid in full</span>}{o.codCollected && o.codDue > 0 && <span className="block text-xs text-zeyti">Collected</span>}</td>
                     <td className="px-4 py-3.5"><Badge s={o.status} /></td>
                     <td className="px-4 py-3.5 text-right tnum font-medium">{egp(o.total)}</td>
                   </tr>

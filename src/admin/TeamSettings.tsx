@@ -113,7 +113,7 @@ export function Settings() {
 
   return (
     <>
-      <PageHead title="Settings" sub="Payment accounts and delivery fees shown to customers at checkout." action={<button className="btn-dark" onClick={() => { saveSettings(s); toast("Settings saved"); }}>Save settings</button>} />
+      <PageHead title="Settings" sub="Payment accounts and delivery fees shown to customers at checkout." action={<button className="btn-dark" onClick={() => { saveSettings({ ...s, minDeposit: Math.max(100, Math.round(s.minDeposit) || 100) }); setS((x) => ({ ...x, minDeposit: Math.max(100, Math.round(x.minDeposit) || 100) })); toast("Settings saved"); }}>Save settings</button>} />
       <div className="grid xl:grid-cols-2 gap-4">
         <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6 space-y-4">
           <h2 className="font-semibold">InstaPay</h2>
@@ -141,6 +141,10 @@ export function Settings() {
               {F({ id: "st-s1", label: "Cairo, Giza, Alex", type: "number", value: s.shippingCairoAlex, on: (v) => setS({ ...s, shippingCairoAlex: Number(v) }) })}
               {F({ id: "st-s2", label: "Other areas", type: "number", value: s.shippingOther, on: (v) => setS({ ...s, shippingOther: Number(v) }) })}
               {F({ id: "st-s3", label: "Free over", type: "number", value: s.freeShippingOver, on: (v) => setS({ ...s, freeShippingOver: Number(v) }) })}
+            </div>
+            <div className="max-w-[220px]">
+              {F({ id: "st-dep", label: "Minimum deposit (EGP)", type: "number", value: s.minDeposit, on: (v) => setS({ ...s, minDeposit: Number(v) }) })}
+              <p className="text-xs text-stone mt-1.5">At least 100 EGP. The rest is collected in cash on delivery.</p>
             </div>
             {F({ id: "st-wa", label: "Customer WhatsApp number", value: s.whatsapp, on: (v) => setS({ ...s, whatsapp: v }) })}
           </section>

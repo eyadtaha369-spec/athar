@@ -68,6 +68,7 @@ h1, h2, h3 { text-wrap: balance; }
 
 :focus-visible { outline: 2px solid var(--topy); outline-offset: 3px; }
 
+@layer components {
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-md px-6 h-12 text-[15px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
 }
@@ -78,6 +79,7 @@ h1, h2, h3 { text-wrap: balance; }
   @apply w-full h-12 rounded-xl bg-paper border border-fahmy/15 px-4 text-[15px] outline-none transition-colors placeholder:text-stone/70 focus:border-topy;
 }
 textarea.field { @apply h-auto py-3; }
+}
 .label { @apply block text-sm text-stone mb-1.5; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }

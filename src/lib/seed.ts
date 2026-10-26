@@ -165,6 +165,7 @@ export const SEED_SETTINGS: Settings = {
   shippingCairoAlex: 70,
   shippingOther: 95,
   freeShippingOver: 1500,
+  minDeposit: 100,
   whatsapp: "+20 100 000 0000",
 };
 
@@ -229,12 +230,15 @@ export function seedOrders(products: Product[]): Order[] {
     const createdAt = daysAgo(d, (i * 5) % 11);
     const steps = status === "cancelled" ? ["pending", "cancelled"] : flow.slice(0, flow.indexOf(status) + 1);
     const ref = "IP" + (88213400 + i * 137);
+    const dep = Math.min(subtotal + fee, [100, 150, 200, 100, 300][i % 5]);
     return {
       id: "s" + i, number: "ATH-" + (1001 + plan.length - i), createdAt,
       customer: { name: n[0], phone: n[1] },
       shipping: { governorate: n[2], city: n[3], address: `${12 + i} Street ${i + 3}, ${n[3]}` },
       lines, subtotal, shippingFee: fee, total: subtotal + fee,
-      payment: { method: i % 3 === 0 ? "wallet" : "instapay", reference: ref, senderName: n[0], receipt: sampleReceipt(ref, subtotal + fee) },
+      payment: { method: i % 3 === 0 ? "wallet" : "instapay", reference: ref, senderName: n[0], receipt: sampleReceipt(ref, dep), deposit: dep, verifiedDeposit: status !== "pending" && status !== "cancelled" ? dep : undefined },
+      codDue: subtotal + fee - dep,
+      codCollected: status === "delivered",
       status,
       history: steps.map((s, k) => ({ status: s as OrderStatus, at: new Date(new Date(createdAt).getTime() + k * 6 * 36e5).toISOString(), by: k ? "Store owner" : undefined })),
       paymentVerified: status !== "pending" && status !== "cancelled",

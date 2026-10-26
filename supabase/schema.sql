@@ -58,7 +58,11 @@ create table if not exists orders (
   pay_method text not null check (pay_method in ('instapay','wallet','bank')),
   pay_reference text,
   sender_name text,
-  receipt_path text not null,                 -- path in the private receipts bucket
+  receipt_path text not null,                 -- deposit receipt, path in the private receipts bucket
+  deposit numeric(10,2) not null check (deposit >= 100 or deposit = total),   -- customer-entered deposit
+  verified_deposit numeric(10,2),             -- amount the admin confirmed on the receipt
+  cod_due numeric(10,2) not null default 0,   -- balance collected in cash on delivery
+  cod_collected boolean not null default false,
   payment_verified boolean not null default false,
   status text not null default 'pending' check (status in ('pending','confirmed','shipped','delivered','cancelled'))
 );

@@ -8,7 +8,7 @@ import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
 
 const FLOW = ["pending", "confirmed", "shipped", "delivered"] as const;
 const FLOW_COPY: Record<string, string> = {
-  pending: "We're checking your transfer",
+  pending: "We're checking your deposit receipt",
   confirmed: "Payment confirmed, preparing your order",
   shipped: "With the courier",
   delivered: "Delivered",
@@ -57,7 +57,7 @@ export function OrderDone() {
       )}
       <h1 className="display text-5xl md:text-8xl mt-4">{fresh ? "Order placed" : `Order ${o.number}`}</h1>
       <p className="text-stone mt-3 max-w-[56ch] text-lg">
-        {fresh ? <>Your order number is <b className="text-fahmy tnum">{o.number}</b>. We're checking your transfer now and will message you on WhatsApp at <span className="tnum">{o.customer.phone}</span> once it's confirmed.</>
+        {fresh ? <>Your order number is <b className="text-fahmy tnum">{o.number}</b>. We're checking your deposit receipt now and will message you on WhatsApp at <span className="tnum">{o.customer.phone}</span> once it's confirmed.</>
           : <>Placed {fmtDate(o.createdAt, true)}.</>}
       </p>
 
@@ -78,7 +78,9 @@ export function OrderDone() {
           </ul>
           <dl className="pt-3 border-t border-fahmy/10 space-y-1.5 tnum text-[15px]">
             <div className="flex justify-between"><dt className="text-stone">Delivery to {o.shipping.governorate}</dt><dd>{o.shippingFee ? egp(o.shippingFee) : "Free"}</dd></div>
-            <div className="flex justify-between font-semibold text-lg"><dt>Total paid</dt><dd>{egp(o.total)}</dd></div>
+            <div className="flex justify-between font-semibold text-lg"><dt>Order total</dt><dd>{egp(o.total)}</dd></div>
+            <div className="flex justify-between"><dt className="text-stone">Deposit paid</dt><dd>{egp(o.payment.verifiedDeposit ?? o.payment.deposit)}</dd></div>
+            <div className="flex justify-between font-semibold"><dt>Cash on delivery</dt><dd className="text-topy">{o.codCollected ? "Paid" : egp(o.codDue)}</dd></div>
           </dl>
         </div>
       </div>

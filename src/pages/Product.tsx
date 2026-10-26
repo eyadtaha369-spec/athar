@@ -122,7 +122,7 @@ export default function ProductPage() {
             <div className="mt-10">
               <Accordion defaultOpen={0} items={[
                 { q: "Details", a: <ul className="list-disc pl-5 space-y-1">{p.details.map((d) => <li key={d}>{d}</li>)}</ul> },
-                { q: "Payment", a: "Pay by InstaPay, mobile wallet or bank transfer, then upload your receipt at checkout. We confirm every order by hand. Cash on delivery isn't available." },
+                { q: "Payment", a: `Pay a deposit from ${db.settings.minDeposit} EGP by InstaPay, mobile wallet or bank transfer and upload the receipt at checkout. The rest is paid in cash on delivery.` },
                 { q: "Delivery", a: `${db.settings.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, ${db.settings.shippingOther} EGP elsewhere. Free over ${db.settings.freeShippingOver.toLocaleString()} EGP. Usually 3–5 working days.` },
               ]} />
             </div>

@@ -10,7 +10,7 @@ import { SEED_PRODUCTS, SEED_SETTINGS, seedOrders } from "./seed";
 import { sha256, uid } from "./utils";
 import { fromPrice, normalizeProduct } from "./pricing";
 
-const KEY = "athar:db:v4";
+const KEY = "athar:db:v5";
 const CART_KEY = "athar:cart:v2";
 const SESSION_KEY = "athar:admin-session";
 
@@ -53,7 +53,7 @@ interface Ctx {
   clearCart: () => void;
   cartOpen: boolean;
   setCartOpen: (v: boolean) => void;
-  placeOrder: (o: Omit<Order, "id" | "number" | "createdAt" | "status" | "history" | "paymentVerified">) => Order;
+  placeOrder: (o: Omit<Order, "id" | "number" | "createdAt" | "status" | "history" | "paymentVerified" | "codDue">) => Order;
   // admin
   me: AdminUser | null;
   login: (email: string, password: string) => Promise<string | null>;
@@ -61,7 +61,7 @@ interface Ctx {
   saveProduct: (p: Product) => void;
   deleteProduct: (id: string) => void;
   setOrderStatus: (id: string, s: OrderStatus, note?: string) => void;
-  verifyPayment: (id: string, v: boolean) => void;
+  verifyPayment: (id: string, v: boolean, amount?: number) => void;
   addAdmin: (a: { name: string; email: string; role: AdminUser["role"]; password: string }) => Promise<string | null>;
   removeAdmin: (id: string) => string | null;
   changePassword: (id: string, pw: string) => Promise<void>;
@@ -96,7 +96,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const raw = safeGet(KEY);
-      if (raw) { try { const d: DB = JSON.parse(raw); setDb({ ...d, products: d.products.map(normalizeProduct) }); return; } catch { /* fall through */ } }
+      if (raw) {
+        try {
+          const d: DB = JSON.parse(raw);
+          setDb({
+            ...d,
+            products: d.products.map(normalizeProduct),
+            settings: { ...SEED_SETTINGS, ...d.settings, minDeposit: d.settings.minDeposit ?? SEED_SETTINGS.minDeposit },
+            // orders saved before deposits existed were paid in full
+            orders: d.orders.map((o) => ({ ...o, codDue: o.codDue ?? 0, payment: { ...o.payment, deposit: o.payment.deposit ?? o.total } })),
+          });
+          return;
+        } catch { /* fall through */ }
+      }
       const d = await freshDB();
       safeSet(KEY, JSON.stringify(d));
       setDb(d);
@@ -156,7 +168,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const order: Order = {
         ...o, id: uid(), number: "ATH-" + seq, createdAt: new Date().toISOString(),
         status: "pending", paymentVerified: false,
-        history: [{ status: "pending", at: new Date().toISOString(), note: "Order placed, receipt uploaded" }],
+        codDue: Math.max(0, o.total - o.payment.deposit),
+        history: [{ status: "pending", at: new Date().toISOString(), note: `Order placed with a ${o.payment.deposit} EGP deposit receipt` }],
       };
       commit((d) => ({
         ...d, seq,
@@ -166,7 +179,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           const q = o.lines.filter((l) => l.productId === p.id).reduce((s, l) => s + l.qty, 0);
           return q ? { ...p, stock: Math.max(0, p.stock - q) } : p;
         }),
-        notices: [{ id: uid(), orderId: order.id, read: false, at: order.createdAt, text: `New order ${order.number} from ${o.customer.name} — ${o.total} EGP` }, ...d.notices].slice(0, 100),
+        notices: [{ id: uid(), orderId: order.id, read: false, at: order.createdAt, text: `New order ${order.number} from ${o.customer.name}: ${o.payment.deposit} EGP deposit, ${order.codDue} EGP on delivery` }, ...d.notices].slice(0, 100),
       }));
       return order;
     },
@@ -191,7 +204,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...d, orders: d.orders.map((o) => {
         if (o.id !== id || o.status === s) return o;
         // returning stock when an order is cancelled
-        return { ...o, status: s, paymentVerified: s === "confirmed" ? true : o.paymentVerified, history: [...o.history, { status: s, at: new Date().toISOString(), by: me?.name, note }] };
+        const autoNote = s === "delivered" && o.codDue > 0 ? `Collected ${o.codDue} EGP cash on delivery` : undefined;
+        return {
+          ...o, status: s,
+          paymentVerified: s === "confirmed" ? true : o.paymentVerified,
+          codCollected: s === "delivered" ? true : o.codCollected,
+          history: [...o.history, { status: s, at: new Date().toISOString(), by: me?.name, note: note ?? autoNote }],
+        };
       }),
       products: s === "cancelled"
         ? d.products.map((p) => {
@@ -202,7 +221,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           })
         : d.products,
     })),
-    verifyPayment: (id, v) => commit((d) => ({ ...d, orders: d.orders.map((o) => (o.id === id ? { ...o, paymentVerified: v } : o)) })),
+    verifyPayment: (id, v, amount) => commit((d) => ({
+      ...d, orders: d.orders.map((o) => {
+        if (o.id !== id) return o;
+        const verifiedDeposit = v ? (amount ?? o.payment.deposit) : undefined;
+        return { ...o, paymentVerified: v, payment: { ...o.payment, verifiedDeposit }, codDue: Math.max(0, o.total - (verifiedDeposit ?? o.payment.deposit)) };
+      }),
+    })),
     addAdmin: async ({ name, email, role, password }) => {
       if (db.admins.some((a) => a.email.toLowerCase() === email.toLowerCase())) return "An admin with that email already exists.";
       const passwordHash = await sha256(password);

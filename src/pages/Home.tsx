@@ -181,9 +181,9 @@ function Vault({ items }: { items: Product[] }) {
 function Process() {
   const steps = [
     ["Pick", "Choose your design, size or phone model. Custom text if it has it."],
-    ["Transfer", "Send the total by InstaPay, wallet or bank. No cash on delivery."],
-    ["Upload", "Attach the receipt screenshot with your delivery details."],
-    ["Receive", "We confirm on WhatsApp and ship within 1–2 working days."],
+    ["Deposit", "Transfer a deposit from 100 EGP by InstaPay, wallet or bank."],
+    ["Upload", "Attach the deposit receipt. We verify it and confirm your order."],
+    ["Receive", "Pay the rest in cash to the courier when your order arrives."],
   ];
   return (
     <section className="bg-ink text-sand relative">
@@ -327,8 +327,8 @@ function FAQ() {
           <p className="text-sand/55 mt-6 max-w-[36ch]">Not here? Message us on WhatsApp at <span className="text-sand tnum select-all">{s.whatsapp}</span>.</p>
         </div>
         <Accordion dark defaultOpen={0} items={[
-          { q: "How do I pay?", a: <>InstaPay, mobile wallets ({s.wallet.providers}) or bank transfer. Transfer the order total, screenshot the confirmation and upload it at checkout. Cash on delivery isn't available.</> },
-          { q: "When is my order confirmed?", a: "We check every transfer by hand, usually within a few hours on working days. You'll get a WhatsApp message once it's confirmed, and you can follow it on the Track order page." },
+          { q: "How do I pay?", a: <>Pay a deposit of at least {s.minDeposit} EGP by InstaPay, mobile wallet ({s.wallet.providers}) or bank transfer, and upload the receipt at checkout. You pay the rest in cash when the courier delivers your order. You can also pay the full amount upfront.</> },
+          { q: "When is my order confirmed?", a: "Your order stays pending until we check your deposit receipt by hand, usually within a few hours on working days. You'll get a WhatsApp message once it's confirmed, and you can follow it on the Track order page." },
           { q: "How much is delivery?", a: <>{s.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, {s.shippingOther} EGP to other governorates, and free over {s.freeShippingOver.toLocaleString()} EGP. Most orders arrive in 3–5 working days.</> },
           { q: "What are the flags made of?", a: "Knitted polyester printed edge to edge, with brass grommets and wall hooks in the box. They're light, don't crease much, and are safe to wash cold." },
           { q: "Can I return or exchange?", a: "Unused items can be exchanged within 14 days. Custom flags and personalised cases are made for you, so we replace those only if they arrive damaged or misprinted." },

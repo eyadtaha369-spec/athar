@@ -60,11 +60,14 @@ export const CATEGORY_LABEL: Record<string, { en: string; ar: string }> = {
 };
 
 export const STATUS_META: Record<string, { label: string; ar: string; cls: string }> = {
-  pending:   { label: "Pending",   ar: "قيد المراجعة", cls: "bg-[#F3E3C3] text-[#7A5317]" },
+  pending:   { label: "Pending verification", ar: "في انتظار التأكيد", cls: "bg-[#F3E3C3] text-[#7A5317]" },
   confirmed: { label: "Confirmed", ar: "تم التأكيد",   cls: "bg-[#E3E7DC] text-zeyti" },
   shipped:   { label: "Shipped",   ar: "تم الشحن",     cls: "bg-[#DCE4EA] text-[#3D5566]" },
   delivered: { label: "Delivered", ar: "تم التسليم",   cls: "bg-fahmy text-sand" },
   cancelled: { label: "Cancelled", ar: "ملغي",          cls: "bg-[#F1DCD3] text-topy-dark" },
 };
+
+/** Deposit actually counted for an order: the admin-verified amount once checked. */
+export const depositOf = (o: { payment: { deposit: number; verifiedDeposit?: number } }) => o.payment.verifiedDeposit ?? o.payment.deposit;
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");

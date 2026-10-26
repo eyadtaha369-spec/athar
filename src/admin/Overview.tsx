@@ -64,6 +64,7 @@ export default function Overview() {
     const paid = inRange.filter((o) => PAID.includes(o.status));
     const revenue = paid.reduce((s, o) => s + o.total, 0);
     const pending = db.orders.filter((o) => o.status === "pending");
+    const toCollect = db.orders.filter((o) => o.status === "confirmed" || o.status === "shipped");
     const prevSince = since - range * 864e5;
     const prevRevenue = db.orders.filter((o) => { const t = new Date(o.createdAt).getTime(); return t >= prevSince && t < since && PAID.includes(o.status); }).reduce((s, o) => s + o.total, 0);
 
@@ -91,7 +92,8 @@ export default function Overview() {
     const statusCount = Object.keys(STATUS_META).map((s) => ({ s, n: inRange.filter((o) => o.status === s).length }));
     return {
       revenue, prevRevenue, orders: inRange.length, paidOrders: paid.length, aov: paid.length ? Math.round(revenue / paid.length) : 0,
-      pending, pendingValue: pending.reduce((s, o) => s + o.total, 0), days, topList, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]), statusCount,
+      pending, pendingValue: pending.reduce((s, o) => s + o.payment.deposit, 0),
+      codOpen: toCollect.reduce((s, o) => s + o.codDue, 0), codOrders: toCollect.filter((o) => o.codDue > 0).length, days, topList, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]), statusCount,
     };
   }, [db, range]);
 
@@ -117,17 +119,18 @@ export default function Overview() {
 
       {stats.pending.length > 0 && (
         <Link to="/admin/orders?s=pending" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-topy text-white px-5 py-4 mb-6 hover:bg-topy-dark">
-          <span><b className="tnum">{stats.pending.length}</b> {stats.pending.length === 1 ? "order is" : "orders are"} waiting for payment verification ({egp(stats.pendingValue)})</span>
-          <span className="text-sm underline underline-offset-4">Review receipts</span>
+          <span><b className="tnum">{stats.pending.length}</b> {stats.pending.length === 1 ? "order is" : "orders are"} waiting for deposit verification ({egp(stats.pendingValue)} in deposits)</span>
+          <span className="text-sm underline underline-offset-4">Review deposit receipts</span>
         </Link>
       )}
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3 md:gap-4">
         {[
           { l: "Revenue", v: egp(stats.revenue), s: delta === null ? "Confirmed, shipped and delivered" : `${delta >= 0 ? "+" : ""}${delta}% vs previous ${range} days`, good: delta === null ? undefined : delta >= 0 },
           { l: "Orders", v: stats.orders.toString(), s: `${stats.paidOrders} paid` },
           { l: "Average order", v: egp(stats.aov), s: "Paid orders only" },
-          { l: "Awaiting verification", v: stats.pending.length.toString(), s: egp(stats.pendingValue) + " to check" },
+          { l: "Awaiting verification", v: stats.pending.length.toString(), s: egp(stats.pendingValue) + " in deposits to check" },
+          { l: "Cash to collect", v: egp(stats.codOpen), s: `On ${stats.codOrders} confirmed or shipped ${stats.codOrders === 1 ? "order" : "orders"}` },
         ].map((k, i) => (
           <div key={k.l} className={cx("rounded-2xl p-5", i === 0 ? "bg-fahmy text-sand" : "bg-paper border border-fahmy/10")}>
             <p className={cx("text-sm", i === 0 ? "text-sand/60" : "text-stone")}>{k.l}</p>
