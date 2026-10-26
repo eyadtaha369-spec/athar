@@ -25,11 +25,9 @@ import a_flags_the_godfather_cover from "../assets/flags/the-godfather-cover.web
 import a_flags_the_godfather from "../assets/flags/the-godfather.webp";
 import a_flags_thousands_of_tears_cover from "../assets/flags/thousands-of-tears-cover.webp";
 import a_flags_thousands_of_tears from "../assets/flags/thousands-of-tears.webp";
-import a_life_bag_detail from "../assets/life/bag-detail.webp";
 import a_life_board_dark from "../assets/life/board-dark.webp";
 import a_life_case_hand from "../assets/life/case-hand.webp";
 import a_life_cases from "../assets/life/cases.webp";
-import a_life_laptop_bag from "../assets/life/laptop-bag.webp";
 import a_life_poster_flag from "../assets/life/poster-flag.webp";
 import a_life_sunshade from "../assets/life/sunshade.webp";
 import a_life_umbrella from "../assets/life/umbrella.webp";
@@ -63,11 +61,9 @@ export const ASSETS: Record<string, string> = {
   "flags/the-godfather": a_flags_the_godfather,
   "flags/thousands-of-tears-cover": a_flags_thousands_of_tears_cover,
   "flags/thousands-of-tears": a_flags_thousands_of_tears,
-  "life/bag-detail": a_life_bag_detail,
   "life/board-dark": a_life_board_dark,
   "life/case-hand": a_life_case_hand,
   "life/cases": a_life_cases,
-  "life/laptop-bag": a_life_laptop_bag,
   "life/poster-flag": a_life_poster_flag,
   "life/sunshade": a_life_sunshade,
   "life/umbrella": a_life_umbrella,

@@ -52,7 +52,7 @@ export const isCoreZone = (g: string) => ["Cairo", "Giza", "Alexandria"].include
 
 export const CATEGORY_LABEL: Record<string, { en: string; ar: string }> = {
   posters: { en: "Posters & Wall Art", ar: "بوسترات" },
-  sleeves: { en: "Laptop Bags & Sleeves", ar: "شنط لابتوب" },
+  sleeves: { en: "Laptop Sleeves", ar: "جرابات لابتوب" },
   flags: { en: "Flags", ar: "أعلام" },
   cases: { en: "Phone Cases", ar: "جرابات موبايل" },
   sunshades: { en: "Car Sunshades", ar: "شمسية العربية" },

@@ -45,12 +45,6 @@ export const FLAG_PRODUCTS: Product[] = FLAGS.map(([slug, name, nameAr, collecti
 
 /** Real ATHAR photography for the core products. */
 export const LIFESTYLE: Record<string, Partial<Product>> = {
-  p6: {
-    name: "Signature Laptop Bag", nameAr: "شنطة لابتوب أثر", slug: "signature-laptop-bag",
-    description: "Charcoal canvas laptop bag with a padded compartment, two top handles and the أثر mark stitched on the front pocket.",
-    details: ["Water-resistant canvas", "Padded laptop compartment", "Front zip pocket for chargers", "Detachable shoulder strap"],
-    images: ["asset:life/laptop-bag", "asset:life/bag-detail"],
-  },
   p9: {
     name: "Signature Phone Case", nameAr: "جراب أثر", slug: "signature-phone-case",
     description: "Soft-touch matte case with the أثر icon in sand. Comes in charcoal, sand, olive and clay; tell us your colour in the order notes.",

@@ -52,7 +52,7 @@ function Hero({ stack }: { stack: Product[] }) {
           </h1>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease }}>
             <p className="text-sand/65 text-[17px] leading-relaxed mt-8 max-w-[46ch]">
-              Wall flags, posters, laptop bags, phone cases, sunshades and umbrellas. Designed in Egypt, printed in small runs, checked by hand before they ship.
+              Wall flags, posters, laptop sleeves, phone cases, sunshades and umbrellas. Designed in Egypt, printed in small runs, checked by hand before they ship.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Link to="/shop?c=flags" className="btn rounded-md bg-sand text-ink hover:bg-white uppercase tracking-wide text-[13px] font-semibold">Shop the flags</Link>
@@ -239,11 +239,11 @@ function Drop({ p }: { p: Product }) {
 
 const CAT_PHOTO: Record<string, string> = {
   flags: "life/poster-flag", posters: "life/wall-posters", cases: "life/cases",
-  sleeves: "life/laptop-bag", sunshades: "life/sunshade", umbrellas: "life/umbrella",
+  sunshades: "life/sunshade", umbrellas: "life/umbrella",
 };
 
 function Categories({ products }: { products: Product[] }) {
-  const cats = Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ k, ...v, count: products.filter((p) => p.category === k).length }));
+  const cats = Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ k, ...v, count: products.filter((p) => p.category === k).length, sample: products.find((p) => p.category === k) }));
   const spans = ["md:col-span-7 md:row-span-2", "md:col-span-5", "md:col-span-5", "md:col-span-4", "md:col-span-4", "md:col-span-4"];
   return (
     <section className="bg-sand text-fahmy">
@@ -258,7 +258,9 @@ function Categories({ products }: { products: Product[] }) {
         <div className="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-4 md:auto-rows-[250px]">
           {cats.map((c, i) => (
             <Link key={c.k} to={`/shop?c=${c.k}`} className={cx("group relative overflow-hidden rounded-xl bg-fahmy", spans[i], i === 0 ? "col-span-2 aspect-[4/3] md:aspect-auto" : "aspect-[4/5] md:aspect-auto")}>
-              <img src={img("asset:" + CAT_PHOTO[c.k])} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" loading="lazy" />
+              {CAT_PHOTO[c.k]
+                ? <img src={img("asset:" + CAT_PHOTO[c.k])} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" loading="lazy" />
+                : c.sample && <div className="absolute inset-0 transition-transform duration-[900ms] group-hover:scale-105"><ProductImage p={c.sample} /></div>}
               <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 bg-gradient-to-t from-ink/85 via-ink/35 to-transparent text-sand flex items-end justify-between gap-3">
                 <div>
                   <p className="font-ar text-sm text-sand/75" lang="ar">{c.ar}</p>
