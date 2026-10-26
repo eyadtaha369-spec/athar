@@ -58,7 +58,7 @@ export function Team() {
                 {a.id !== me?.id && (confirm === a.id ? (
                   <span className="flex gap-2 text-sm items-center">
                     Remove access?
-                    <button className="btn h-9 px-3 bg-topy text-white" onClick={() => { const e = removeAdmin(a.id); if (e) toast(e); else toast(`${a.name} removed`); setConfirm(null); }}>Remove</button>
+                    <button className="btn h-9 px-3 bg-topy text-white" onClick={async () => { const e = await removeAdmin(a.id); toast(e || `${a.name} removed`); setConfirm(null); }}>Remove</button>
                     <button className="btn h-9 px-3" onClick={() => setConfirm(null)}>Keep</button>
                   </span>
                 ) : (
@@ -102,7 +102,8 @@ export function Team() {
 }
 
 export function Settings() {
-  const { db, me, saveSettings, clearSamples, resetAll, toast } = useStore();
+  const { db, me, mode, saveSettings, clearSamples, resetAll, importCatalog, toast } = useStore();
+  const [importing, setImporting] = useState(false);
   const [s, setS] = useState<S>(db.settings);
   const [confirmReset, setConfirmReset] = useState(false);
   if (!can(me?.role, "settings")) return <Forbidden />;
@@ -150,16 +151,31 @@ export function Settings() {
           </section>
           <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
             <h2 className="font-semibold mb-1">Store data</h2>
-            <p className="text-sm text-stone mb-4">This demo keeps its data in this browser. Connect Supabase to share it across devices (see README).</p>
-            <div className="flex flex-wrap gap-3">
-              <button className="btn-line" disabled={!samples} onClick={() => { clearSamples(); toast("Sample orders removed"); }}>{samples ? `Remove ${samples} sample orders` : "No sample orders"}</button>
-              {confirmReset ? (
-                <span className="flex items-center gap-2 text-sm">Reset all products, orders and team?
-                  <button className="btn h-10 px-4 bg-topy text-white" onClick={async () => { await resetAll(); toast("Demo data restored"); setConfirmReset(false); }}>Reset</button>
-                  <button className="btn h-10 px-4" onClick={() => setConfirmReset(false)}>Keep</button>
-                </span>
-              ) : <button className="btn text-topy" onClick={() => setConfirmReset(true)}>Reset demo data</button>}
-            </div>
+            {mode === "sheets" ? (
+              <>
+                <p className="text-sm text-stone mb-4">
+                  Connected to Google Sheets. Orders, products and settings are shared across every device, and deposit receipts are saved in your Google Drive.
+                </p>
+                {db.products.length === 0 && (
+                  <button className="btn-dark" disabled={importing} onClick={async () => { setImporting(true); try { await importCatalog(); toast("Catalog loaded into Google Sheets"); } catch (e) { toast((e as Error).message); } setImporting(false); }}>
+                    {importing ? "Loading catalog…" : "Load the ATHAR catalog"}
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-stone mb-4">Demo mode: data is kept in this browser only. Connect Google Sheets to share orders across devices (google-apps-script/SETUP.md).</p>
+                <div className="flex flex-wrap gap-3">
+                  <button className="btn-line" disabled={!samples} onClick={() => { clearSamples(); toast("Sample orders removed"); }}>{samples ? `Remove ${samples} sample orders` : "No sample orders"}</button>
+                  {confirmReset ? (
+                    <span className="flex items-center gap-2 text-sm">Reset all products, orders and team?
+                      <button className="btn h-10 px-4 bg-topy text-white" onClick={async () => { await resetAll(); toast("Demo data restored"); setConfirmReset(false); }}>Reset</button>
+                      <button className="btn h-10 px-4" onClick={() => setConfirmReset(false)}>Keep</button>
+                    </span>
+                  ) : <button className="btn text-topy" onClick={() => setConfirmReset(true)}>Reset demo data</button>}
+                </div>
+              </>
+            )}
           </section>
         </div>
       </div>

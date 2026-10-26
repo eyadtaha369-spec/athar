@@ -59,7 +59,7 @@ export default function Checkout() {
     } finally { setUploading(false); }
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const er: Record<string, string> = {};
     if (f.name.trim().length < 3) er.name = "Enter your full name.";
@@ -80,16 +80,23 @@ export default function Checkout() {
       return;
     }
     setSubmitting(true);
-    const order = placeOrder({
+    let order;
+    try {
+      order = await placeOrder({
       customer: { name: f.name.trim(), phone: f.phone.replace(/\s/g, ""), email: f.email.trim() || undefined },
       shipping: { governorate: f.governorate, city: f.city.trim(), address: f.address.trim(), notes: f.notes.trim() || undefined },
       lines: rows.map(({ c, p }) => ({
-        productId: p.id, name: p.name, variant: p.variants.find((v) => v.id === c.variantId)?.label,
+        productId: p.id, name: p.name, variantId: c.variantId, variant: p.variants.find((v) => v.id === c.variantId)?.label,
         custom: c.custom, unitPrice: linePrice(p, c.variantId), qty: c.qty,
       })),
       subtotal, shippingFee: fee ?? 0, total,
       payment: { method, receipt, deposit, senderName: f.sender.trim(), reference: f.reference.trim() || undefined },
-    });
+      });
+    } catch (err) {
+      setSubmitting(false);
+      setErrors({ submit: (err as Error).message || "Your order couldn't be placed. Try again." });
+      return;
+    }
     clearCart();
     nav(`/order/${order.number}`, { state: { fresh: true } });
   };
@@ -292,7 +299,8 @@ export default function Checkout() {
           <FreeDeliveryBar subtotal={subtotal} threshold={s.freeShippingOver} className="mt-5 rounded-lg bg-ramly/60 p-3.5" />
           <p className="text-sm text-stone mt-3">Delivery in <b className="text-fahmy">{DELIVERY_ETA.en}</b> <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span> after we confirm your deposit.</p>
           {errors.stock && <p className="text-topy text-sm mt-4" role="alert" data-field="stock">{errors.stock}</p>}
-          <button type="submit" className="btn-topy w-full mt-6" disabled={submitting || uploading}>{submitting ? "Placing order…" : "Place order"}</button>
+          {errors.submit && <p className="text-topy text-sm mt-4" role="alert">{errors.submit} Nothing was charged on our side; your details are still here.</p>}
+          <button type="submit" className="btn-topy w-full mt-6" disabled={submitting || uploading}>{submitting ? "Sending your order…" : "Place order"}</button>
           <p className="text-xs text-stone mt-3 leading-relaxed">Your order is reserved as soon as you place it. It stays pending until we verify your deposit, usually within a few hours, and we confirm on WhatsApp.</p>
         </aside>
       </form>

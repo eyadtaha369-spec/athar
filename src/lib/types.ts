@@ -43,6 +43,7 @@ export type PayMethod = "instapay" | "wallet" | "bank";
 export interface OrderLine {
   productId: string;
   name: string;
+  variantId?: string;
   variant?: string;
   custom?: string;
   unitPrice: number;

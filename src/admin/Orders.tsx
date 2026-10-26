@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Search, X, ZoomIn } from "lucide-react";
+import { Check, ImageOff, Loader2, Search, X, ZoomIn } from "lucide-react";
 import { useStore } from "../lib/store";
 import { PageHead } from "./AdminLayout";
 import { STATUS_META, cx, depositOf, egp, fmtDate } from "../lib/utils";
@@ -9,11 +9,30 @@ import type { Order, OrderStatus } from "../lib/types";
 
 const TABS: (OrderStatus | "all")[] = ["all", "pending", "confirmed", "shipped", "delivered", "cancelled"];
 const NEXT: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
-  pending: { to: "confirmed", label: "Approve deposit" },
+  pending: { to: "confirmed", label: "Confirm order" },
   confirmed: { to: "shipped", label: "Mark as shipped" },
   shipped: { to: "delivered", label: "Mark as delivered" },
 };
 const METHOD: Record<string, string> = { instapay: "InstaPay", wallet: "Mobile wallet", bank: "Bank transfer" };
+
+/** Deposit receipt. In Google Sheets mode the image is fetched from Drive on demand and cached. */
+function ReceiptImg({ o, className = "", alt = "" }: { o: Order; className?: string; alt?: string }) {
+  const { getReceipt } = useStore();
+  const [src, setSrc] = useState<string | null>(o.payment.receipt?.startsWith("data:") ? o.payment.receipt : null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (src) return;
+    let alive = true;
+    getReceipt(o).then((s) => { if (alive) (s ? setSrc(s) : setFailed(true)); }).catch(() => alive && setFailed(true));
+    return () => { alive = false; };
+  }, [o.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (src) return <img src={src} alt={alt} className={className} />;
+  return (
+    <span className={cx("grid place-items-center bg-ramly text-stone", className)} role="img" aria-label={failed ? "Receipt couldn't load" : "Loading receipt"}>
+      {failed ? <ImageOff size={18} /> : <Loader2 size={18} className="animate-spin" />}
+    </span>
+  );
+}
 
 function Badge({ s }: { s: OrderStatus }) {
   return <span className={cx("inline-block rounded-full px-2.5 py-1 text-xs whitespace-nowrap", STATUS_META[s].cls)}>{STATUS_META[s].label}</span>;
@@ -62,7 +81,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
             </div>
             <div className="grid sm:grid-cols-[180px_1fr] gap-5 mt-5">
               <button onClick={() => setZoom(true)} className="group relative rounded-xl overflow-hidden bg-ramly aspect-[9/14] border border-fahmy/10" aria-label="Open deposit receipt full size">
-                <img src={o.payment.receipt} alt="Customer deposit receipt" className="w-full h-full object-cover object-top" />
+                <ReceiptImg o={o} alt="Customer deposit receipt" className="w-full h-full object-cover object-top" />
                 <span className="absolute inset-0 bg-fahmy/0 group-hover:bg-fahmy/30 grid place-items-center text-sand opacity-0 group-hover:opacity-100 transition"><ZoomIn /></span>
                 <span className="absolute inset-x-0 bottom-0 bg-ink/70 text-sand text-[11px] py-1">Tap to enlarge</span>
               </button>
@@ -82,12 +101,12 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
                     {amt > 0 && amt < minDeposit && <p className="text-topy">This is below the {egp(minDeposit)} minimum deposit.</p>}
                     <button className="btn-dark w-full" disabled={!(amt > 0) || amt > o.total}
                       onClick={() => { verifyPayment(o.id, true, amt); setOrderStatus(o.id, "confirmed", `Deposit of ${amt} EGP verified`); toast(`${o.number} confirmed. ${egp(Math.max(0, o.total - amt))} to collect on delivery`); }}>
-                      <Check size={16} /> Approve deposit and confirm order
+                      <Check size={16} /> Confirm order <span className="font-ar font-normal opacity-80" lang="ar">· تأكيد الطلب</span>
                     </button>
                     {amt > o.total && <p className="text-topy">The amount can't be more than the order total.</p>}
                   </div>
                 ) : o.status !== "cancelled" && (
-                  <p className="flex items-center gap-2 text-zeyti"><Check size={16} /> Deposit of {egp(depositOf(o))} verified{o.codCollected ? `, ${egp(o.codDue)} cash collected` : ""}.</p>
+                  <p className="flex items-center gap-2 text-zeyti"><Check size={16} /> Order confirmed. Deposit of {egp(depositOf(o))} verified{o.codCollected ? `, ${egp(o.codDue)} cash collected` : ", stock reserved for this customer"}.</p>
                 )}
               </div>
             </div>
@@ -174,7 +193,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
       <AnimatePresence>
         {zoom && (
           <motion.div className="fixed inset-0 z-[70] bg-fahmy/90 grid place-items-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setZoom(false)}>
-            <img src={o.payment.receipt} alt="Customer transfer receipt, full size" className="max-h-[90vh] max-w-full rounded-xl" />
+            <ReceiptImg o={o} alt="Customer deposit receipt, full size" className="max-h-[90vh] max-w-full rounded-xl min-w-[200px] min-h-[200px]" />
             <button className="absolute top-4 right-4 w-11 h-11 grid place-items-center rounded-full bg-sand text-fahmy" aria-label="Close receipt" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}><X size={18} /></button>
           </motion.div>
         )}
@@ -245,7 +264,7 @@ export default function Orders() {
                     <td className="px-4 py-3.5 text-stone max-w-[220px] truncate">{o.lines.map((l) => `${l.qty}× ${l.name}`).join(", ")}</td>
                     <td className="px-4 py-2">
                       <button onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }} className="block w-10 h-14 rounded-md overflow-hidden border border-fahmy/15 bg-ramly" aria-label={`Open ${o.number} deposit receipt`}>
-                        <img src={o.payment.receipt} alt="" className="w-full h-full object-cover object-top" loading="lazy" />
+                        <ReceiptImg o={o} className="w-full h-full object-cover object-top" />
                       </button>
                     </td>
                     <td className="px-4 py-3.5 tnum">

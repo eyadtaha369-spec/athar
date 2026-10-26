@@ -43,9 +43,9 @@ export function StatusTimeline({ o }: { o: Order }) {
 
 export function OrderDone() {
   const { number } = useParams();
-  const { db } = useStore();
+  const { findMyOrder } = useStore();
   const loc = useLocation() as { state?: { fresh?: boolean } };
-  const o = db.orders.find((x) => x.number === number);
+  const o = number ? findMyOrder(number) : undefined;
   if (!o) return <Track />;
   const fresh = loc.state?.fresh;
 
@@ -93,16 +93,19 @@ export function OrderDone() {
 }
 
 export function Track() {
-  const { db } = useStore();
+  const { trackOrder } = useStore();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
   const [num, setNum] = useState("");
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<Order | null | "none">(null);
 
-  const go = (e: React.FormEvent) => {
+  const go = async (e: React.FormEvent) => {
     e.preventDefault();
-    const n = num.trim().toUpperCase().replace(/^(\d)/, "ATH-$1");
-    const o = db.orders.find((x) => x.number === n && x.customer.phone === phone.replace(/\s/g, ""));
-    setResult(o ?? "none");
+    setBusy(true); setErr("");
+    try { setResult((await trackOrder(num, phone)) ?? "none"); }
+    catch (x) { setErr((x as Error).message); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -113,8 +116,9 @@ export function Track() {
       <form onSubmit={go} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 mt-8">
         <input id="track-num" className="field tnum" placeholder="ATH-1042" value={num} onChange={(e) => setNum(e.target.value)} aria-label="Order number" required />
         <input id="track-phone" className="field tnum" placeholder="01xxxxxxxxx" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} aria-label="Mobile number" required />
-        <button className="btn-dark">Find order</button>
+        <button className="btn-dark" disabled={busy}>{busy ? "Finding…" : "Find order"}</button>
       </form>
+      {err && <p className="mt-6 text-topy" role="alert">{err}</p>}
       {result === "none" && <p className="mt-6 text-topy" role="alert">No order matches that number and mobile. Check both and try again.</p>}
       {result && result !== "none" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-10 rounded-[24px] bg-paper border border-fahmy/10 p-6">

@@ -55,8 +55,9 @@ function RevenueChart({ days }: { days: { label: string; value: number; orders: 
 }
 
 export default function Overview() {
-  const { db } = useStore();
+  const { db, mode, importCatalog, toast } = useStore();
   const [range, setRange] = useState(14);
+  const [importing, setImporting] = useState(false);
 
   const stats = useMemo(() => {
     const since = Date.now() - range * 864e5;
@@ -117,6 +118,18 @@ export default function Overview() {
         }
       />
 
+      {mode === "sheets" && db.products.length === 0 && (
+        <div className="rounded-2xl bg-fahmy text-sand px-5 py-5 mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold">Your Google Sheet has no products yet</p>
+            <p className="text-sand/60 text-sm">Copy the full ATHAR catalog, with every size and price, into the Products sheet.</p>
+          </div>
+          <button className="btn rounded-md bg-sand text-ink hover:bg-white" disabled={importing}
+            onClick={async () => { setImporting(true); try { await importCatalog(); toast("Catalog loaded into Google Sheets"); } catch (e) { toast((e as Error).message); } setImporting(false); }}>
+            {importing ? "Loading…" : "Load the ATHAR catalog"}
+          </button>
+        </div>
+      )}
       {stats.pending.length > 0 && (
         <Link to="/admin/orders?s=pending" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-topy text-white px-5 py-4 mb-6 hover:bg-topy-dark">
           <span><b className="tnum">{stats.pending.length}</b> {stats.pending.length === 1 ? "order is" : "orders are"} waiting for deposit verification ({egp(stats.pendingValue)} in deposits)</span>

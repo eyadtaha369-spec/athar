@@ -275,8 +275,9 @@ export default function Products() {
                     <td className="px-4 py-3 text-stone">{CATEGORY_LABEL[p.category].en}</td>
                     <td className="px-4 py-3 tnum">{new Set(p.variants.map((v) => v.price)).size > 1 && <span className="text-stone">from </span>}{egp(p.price)}{p.variants.length > 1 && <span className="block text-xs text-stone">{p.variants.length} sizes</span>}</td>
                     <td className="px-4 py-3">
-                      <input type="number" min={0} value={p.stock} aria-label={`Stock for ${p.name}`}
-                        onChange={(e) => saveProduct({ ...p, stock: Math.max(0, Number(e.target.value)) })}
+                      <input key={p.id + ":" + p.stock} type="number" min={0} defaultValue={p.stock} aria-label={`Stock for ${p.name}`}
+                        onBlur={(e) => { const v = Math.max(0, Number(e.target.value) || 0); if (v !== p.stock) { saveProduct({ ...p, stock: v }); toast(`${p.name}: ${v} in stock`); } }}
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         className={cx("w-20 h-9 rounded-lg border px-2 tnum bg-sand", p.stock === 0 ? "border-topy text-topy" : p.stock <= 5 ? "border-[#C9A77C]" : "border-fahmy/15")} />
                     </td>
                     <td className="px-4 py-3 tnum text-stone">{sold.get(p.id) || 0}</td>

@@ -1,18 +1,27 @@
 /**
  * ATHAR data layer.
- * This is a local mock backend (localStorage) with the same shape as the Supabase
- * schema in /supabase/schema.sql. Every mutation goes through `commit`, so swapping
- * to Supabase means replacing the bodies of the actions below with supabase-js calls.
+ *
+ * Two modes, same interface:
+ *  - "sheets": a Google Apps Script backend (google-apps-script/Code.gs) is configured. Orders,
+ *    products, settings and admins are shared through one Google Sheet, so an order placed on any
+ *    device reaches the admin on any other device. The admin dashboard polls for new orders.
+ *  - "local": no backend configured (demo and preview). Everything lives in this browser's
+ *    localStorage; other tabs in the same browser stay in sync through the storage event.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AdminUser, CartItem, Notice, Order, OrderStatus, Product, Settings } from "./types";
 import { SEED_PRODUCTS, SEED_SETTINGS, seedOrders } from "./seed";
 import { sha256, uid } from "./utils";
 import { fromPrice, normalizeProduct } from "./pricing";
+import { ApiError, REMOTE, call } from "./api";
 
 const KEY = "athar:db:v7";
 const CART_KEY = "athar:cart:v2";
 const SESSION_KEY = "athar:admin-session";
+const TOKEN_KEY = "athar:admin-token";
+const CATALOG_KEY = "athar:catalog-cache";
+const MY_ORDERS_KEY = "athar:my-orders";
+const POLL_MS = 12000;
 
 interface DB {
   products: Product[];
@@ -22,6 +31,8 @@ interface DB {
   settings: Settings;
   seq: number;
 }
+
+export type NewOrder = Omit<Order, "id" | "number" | "createdAt" | "status" | "history" | "paymentVerified" | "codDue">;
 
 // Default owner account (change the password from Admin → Team after first login)
 export const DEFAULT_OWNER = { email: "owner@athar.eg", password: "athar2026" };
@@ -42,9 +53,15 @@ async function freshDB(): Promise<DB> {
 
 const safeGet = (k: string, s: Storage = localStorage) => { try { return s.getItem(k); } catch { return null; } };
 const safeSet = (k: string, v: string, s: Storage = localStorage) => { try { s.setItem(k, v); return true; } catch { return false; } };
+const safeDel = (k: string, s: Storage = localStorage) => { try { s.removeItem(k); } catch { /* ignore */ } };
+const readJSON = <T,>(k: string, fallback: T, s: Storage = localStorage): T => { try { return JSON.parse(safeGet(k, s) || "") as T; } catch { return fallback; } };
+
+const normalizeOrder = (o: Order): Order => ({ ...o, codDue: o.codDue ?? 0, payment: { ...o.payment, deposit: o.payment.deposit ?? o.total } });
+const withSettings = (s?: Partial<Settings>): Settings => ({ ...SEED_SETTINGS, ...(s || {}), minDeposit: s?.minDeposit ?? SEED_SETTINGS.minDeposit });
 
 interface Ctx {
   ready: boolean;
+  mode: "sheets" | "local";
   db: DB;
   // storefront
   cart: CartItem[];
@@ -53,20 +70,27 @@ interface Ctx {
   clearCart: () => void;
   cartOpen: boolean;
   setCartOpen: (v: boolean) => void;
-  placeOrder: (o: Omit<Order, "id" | "number" | "createdAt" | "status" | "history" | "paymentVerified" | "codDue">) => Order;
+  placeOrder: (o: NewOrder) => Promise<Order>;
+  findMyOrder: (number: string) => Order | undefined;
+  trackOrder: (number: string, phone: string) => Promise<Order | null>;
   // admin
   me: AdminUser | null;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => void;
-  saveProduct: (p: Product) => void;
+  refreshOrders: () => Promise<void>;
+  lastSync: number | null;
+  syncError: string | null;
+  getReceipt: (o: Order) => Promise<string>;
+  saveProduct: (p: Product) => Promise<void>;
   deleteProduct: (id: string) => void;
   setOrderStatus: (id: string, s: OrderStatus, note?: string) => void;
   verifyPayment: (id: string, v: boolean, amount?: number) => void;
   addAdmin: (a: { name: string; email: string; role: AdminUser["role"]; password: string }) => Promise<string | null>;
-  removeAdmin: (id: string) => string | null;
+  removeAdmin: (id: string) => Promise<string | null>;
   changePassword: (id: string, pw: string) => Promise<void>;
   markNoticesRead: () => void;
   saveSettings: (s: Settings) => void;
+  importCatalog: () => Promise<void>;
   clearSamples: () => void;
   resetAll: () => Promise<void>;
   toast: (msg: string) => void;
@@ -78,78 +102,168 @@ export const useStore = () => useContext(StoreCtx);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [db, setDb] = useState<DB | null>(null);
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try { return JSON.parse(safeGet(CART_KEY) || "[]"); } catch { return []; }
-  });
+  const dbRef = useRef<DB | null>(null);
+  const [cart, setCart] = useState<CartItem[]>(() => readJSON<CartItem[]>(CART_KEY, []));
   const [cartOpen, setCartOpen] = useState(false);
   const [meId, setMeId] = useState<string | null>(() => safeGet(SESSION_KEY, sessionStorage));
+  const [token, setToken] = useState<string | null>(() => (REMOTE ? safeGet(TOKEN_KEY, sessionStorage) : null));
+  const [remoteMe, setRemoteMe] = useState<AdminUser | null>(null);
+  const [lastSync, setLastSync] = useState<number | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<number>();
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const receipts = useRef(new Map<string, Promise<string>>());
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToastMsg(null), 3200);
+    toastTimer.current = window.setTimeout(() => setToastMsg(null), 3600);
   }, []);
 
-  // boot
+  /** Applies a change to the in-memory store; in local mode it is also saved to this browser. */
+  const commit = useCallback((fn: (d: DB) => DB) => {
+    const prev = dbRef.current;
+    if (!prev) return;
+    const next = fn(prev);
+    dbRef.current = next;
+    setDb(next);
+    if (!REMOTE && !safeSet(KEY, JSON.stringify(next))) {
+      toast("Browser storage is full. Remove old images or clear sample data in Settings.");
+    }
+  }, [toast]);
+
+  const signOutLocal = useCallback(() => {
+    safeDel(TOKEN_KEY, sessionStorage); safeDel(SESSION_KEY, sessionStorage);
+    setToken(null); setRemoteMe(null); setMeId(null);
+  }, []);
+
+  /** Runs backend writes one at a time, in order, so quick successive changes can't overwrite each other. */
+  const enqueue = useCallback((job: () => Promise<unknown>) => {
+    const run = queue.current.then(job).catch((err: ApiError) => {
+      toast(err.message || "That change couldn't be saved. Try again.");
+      if (err.code === "auth") signOutLocal();
+    });
+    queue.current = run;
+    return run;
+  }, [toast, signOutLocal]);
+
+  /* ---------- boot ---------- */
   useEffect(() => {
     (async () => {
+      if (REMOTE) {
+        const cached = readJSON<{ products: Product[]; settings: Settings } | null>(CATALOG_KEY, null);
+        const base = (c: { products: Product[]; settings: Settings }): DB => ({
+          products: c.products.map(normalizeProduct), settings: withSettings(c.settings), orders: [], admins: [], notices: [], seq: 0,
+        });
+        if (cached) { dbRef.current = base(cached); setDb(dbRef.current); }
+        try {
+          const c = await call<{ products: Product[]; settings: Settings }>("catalog");
+          safeSet(CATALOG_KEY, JSON.stringify(c));
+          const keep = dbRef.current;
+          dbRef.current = { ...base(c), orders: keep?.orders ?? [], admins: keep?.admins ?? [] };
+          setDb(dbRef.current);
+        } catch (err) {
+          setSyncError((err as Error).message);
+          if (!dbRef.current) { dbRef.current = base({ products: SEED_PRODUCTS, settings: SEED_SETTINGS }); setDb(dbRef.current); }
+        }
+        return;
+      }
       const raw = safeGet(KEY);
       if (raw) {
         try {
           const d: DB = JSON.parse(raw);
-          setDb({
-            ...d,
-            products: d.products.map(normalizeProduct),
-            settings: { ...SEED_SETTINGS, ...d.settings, minDeposit: d.settings.minDeposit ?? SEED_SETTINGS.minDeposit },
-            // orders saved before deposits existed were paid in full
-            orders: d.orders.map((o) => ({ ...o, codDue: o.codDue ?? 0, payment: { ...o.payment, deposit: o.payment.deposit ?? o.total } })),
-          });
+          dbRef.current = { ...d, products: d.products.map(normalizeProduct), settings: withSettings(d.settings), orders: d.orders.map(normalizeOrder) };
+          setDb(dbRef.current);
           return;
         } catch { /* fall through */ }
       }
       const d = await freshDB();
       safeSet(KEY, JSON.stringify(d));
+      dbRef.current = d;
       setDb(d);
     })();
   }, []);
 
-  // cross-tab sync: an order placed in one tab shows up in the admin tab instantly
+  /* ---------- local mode: other tabs in this browser ---------- */
   useEffect(() => {
+    if (REMOTE) return;
     const onStorage = (e: StorageEvent) => {
       if (e.key === KEY && e.newValue) {
-        const next: DB = JSON.parse(e.newValue);
-        setDb((prev) => {
-          if (prev && next.notices.length > prev.notices.length) {
-            const n = next.notices[0];
-            if (n) setTimeout(() => toast(n.text), 0);
-          }
-          return next;
-        });
+        try { dbRef.current = JSON.parse(e.newValue); setDb(dbRef.current); } catch { /* ignore */ }
       }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [toast]);
+  }, []);
 
   useEffect(() => { safeSet(CART_KEY, JSON.stringify(cart)); }, [cart]);
 
-  const commit = useCallback((fn: (d: DB) => DB) => {
-    setDb((prev) => {
-      if (!prev) return prev;
-      const next = fn(prev);
-      if (!safeSet(KEY, JSON.stringify(next))) {
-        setTimeout(() => toast("Browser storage is full. Remove old images or clear sample data in Settings."), 0);
-      }
-      return next;
-    });
-  }, [toast]);
+  /* ---------- sheets mode: admin session and live orders ---------- */
+  const refreshOrders = useCallback(async () => {
+    if (!REMOTE) { setLastSync(Date.now()); return; }
+    if (!token) return;
+    try {
+      const orders = await call<Order[]>("listOrders", {}, token);
+      commit((d) => ({ ...d, orders: orders.map(normalizeOrder) }));
+      setLastSync(Date.now());
+      setSyncError(null);
+    } catch (err) {
+      const e = err as ApiError;
+      if (e.code === "auth") { signOutLocal(); toast(e.message); }
+      else setSyncError(e.message);
+    }
+  }, [token, commit, signOutLocal, toast]);
 
-  const me = useMemo(() => db?.admins.find((a) => a.id === meId) ?? null, [db, meId]);
+  useEffect(() => {
+    if (!REMOTE || !token || !db) return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await call<{ admin: AdminUser; admins: AdminUser[] }>("me", {}, token);
+        if (!alive) return;
+        setRemoteMe(r.admin);
+        commit((d) => ({ ...d, admins: r.admins }));
+        refreshOrders();
+      } catch (err) {
+        if ((err as ApiError).code === "auth") signOutLocal();
+        else setSyncError((err as Error).message);
+      }
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, !!db]);
+
+  useEffect(() => {
+    if (!REMOTE || !remoteMe) return;
+    const t = window.setInterval(() => { if (document.visibilityState === "visible") refreshOrders(); }, POLL_MS);
+    const onFocus = () => refreshOrders();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { window.clearInterval(t); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
+  }, [remoteMe, refreshOrders]);
+
+  const me = useMemo(() => (REMOTE ? remoteMe : db?.admins.find((a) => a.id === meId) ?? null), [db, meId, remoteMe]);
+
+  /* ---------- helpers ---------- */
+  const updateOrder = (id: string, fn: (o: Order) => Order) => {
+    const cur = dbRef.current?.orders.find((o) => o.id === id);
+    if (!cur) return;
+    const next = fn(cur);
+    if (next === cur) return;
+    commit((d) => ({ ...d, orders: d.orders.map((o) => (o.id === id ? next : o)) }));
+    if (REMOTE) {
+      enqueue(async () => {
+        const saved = await call<Order>("updateOrder", { order: { ...next, payment: { ...next.payment, receipt: undefined } } }, token);
+        commit((d) => ({ ...d, orders: d.orders.map((o) => (o.id === id ? normalizeOrder(saved) : o)) }));
+      });
+    }
+    return { cur, next };
+  };
 
   const value: Ctx | null = db && {
     ready: true,
+    mode: REMOTE ? "sheets" : "local",
     db,
     cart,
     cartOpen,
@@ -163,8 +277,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     setQty: (key, qty) => setCart((c) => (qty <= 0 ? c.filter((x) => x.key !== key) : c.map((x) => (x.key === key ? { ...x, qty } : x)))),
     clearCart: () => setCart([]),
-    placeOrder: (o) => {
-      const seq = db.seq + 1;
+
+    placeOrder: async (o) => {
+      if (REMOTE) {
+        const saved = normalizeOrder(await call<Order>("placeOrder", { order: o }));
+        // remember it on this device so the confirmation page can show it (without the receipt image)
+        const mine = readJSON<Order[]>(MY_ORDERS_KEY, []);
+        safeSet(MY_ORDERS_KEY, JSON.stringify([{ ...saved, payment: { ...saved.payment, receipt: "" } }, ...mine].slice(0, 20)));
+        // reflect the stock the server reserved
+        commit((d) => ({
+          ...d, products: d.products.map((p) => {
+            const q = saved.lines.filter((l) => l.productId === p.id).reduce((s, l) => s + l.qty, 0);
+            return q ? { ...p, stock: Math.max(0, p.stock - q) } : p;
+          }),
+        }));
+        return saved;
+      }
+      const d0 = dbRef.current!;
+      const seq = d0.seq + 1;
       const order: Order = {
         ...o, id: uid(), number: "ATH-" + seq, createdAt: new Date().toISOString(),
         status: "pending", paymentVerified: false,
@@ -174,36 +304,87 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       commit((d) => ({
         ...d, seq,
         orders: [order, ...d.orders],
-        // reserve stock
         products: d.products.map((p) => {
           const q = o.lines.filter((l) => l.productId === p.id).reduce((s, l) => s + l.qty, 0);
           return q ? { ...p, stock: Math.max(0, p.stock - q) } : p;
         }),
-        notices: [{ id: uid(), orderId: order.id, read: false, at: order.createdAt, text: `New order ${order.number} from ${o.customer.name}: ${o.payment.deposit} EGP deposit, ${order.codDue} EGP on delivery` }, ...d.notices].slice(0, 100),
       }));
       return order;
     },
+
+    findMyOrder: (number) => db.orders.find((o) => o.number === number) ?? readJSON<Order[]>(MY_ORDERS_KEY, []).find((o) => o.number === number),
+
+    trackOrder: async (number, phone) => {
+      const n = number.trim().toUpperCase().replace(/^(\d)/, "ATH-$1");
+      const ph = phone.replace(/\s/g, "");
+      if (REMOTE) return call<Order | null>("trackOrder", { number: n, phone: ph });
+      return dbRef.current?.orders.find((x) => x.number === n && x.customer.phone === ph) ?? null;
+    },
+
     me,
     login: async (email, password) => {
+      const passwordHash = await sha256(password);
+      if (REMOTE) {
+        try {
+          const r = await call<{ token: string; admin: AdminUser; admins: AdminUser[] }>("login", { email, passwordHash });
+          safeSet(TOKEN_KEY, r.token, sessionStorage);
+          setRemoteMe(r.admin);
+          commit((d) => ({ ...d, admins: r.admins }));
+          setToken(r.token);
+          return null;
+        } catch (err) { return (err as Error).message; }
+      }
       const a = db.admins.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
-      if (!a || a.passwordHash !== (await sha256(password))) return "That email and password don't match an admin account.";
+      if (!a || a.passwordHash !== passwordHash) return "That email and password don't match an admin account.";
       safeSet(SESSION_KEY, a.id, sessionStorage);
       setMeId(a.id);
       commit((d) => ({ ...d, admins: d.admins.map((x) => (x.id === a.id ? { ...x, lastLogin: new Date().toISOString() } : x)) }));
       return null;
     },
-    logout: () => { try { sessionStorage.removeItem(SESSION_KEY); } catch {} setMeId(null); },
-    saveProduct: (raw) => commit((d) => {
-      const p = { ...raw, price: fromPrice(raw.variants, raw.price) };
-      return {
-      ...d, products: d.products.some((x) => x.id === p.id) ? d.products.map((x) => (x.id === p.id ? p : x)) : [p, ...d.products],
-      };
-    }),
-    deleteProduct: (id) => commit((d) => ({ ...d, products: d.products.filter((p) => p.id !== id) })),
-    setOrderStatus: (id, s, note) => commit((d) => ({
-      ...d, orders: d.orders.map((o) => {
-        if (o.id !== id || o.status === s) return o;
-        // returning stock when an order is cancelled
+    logout: () => {
+      if (REMOTE && token) call("logout", {}, token).catch(() => undefined);
+      signOutLocal();
+    },
+    refreshOrders,
+    lastSync,
+    syncError,
+
+    getReceipt: (o) => {
+      const ref = o.payment.receipt || "";
+      if (!REMOTE || ref.startsWith("data:")) return Promise.resolve(ref);
+      const hit = receipts.current.get(o.id);
+      if (hit) return hit;
+      const p = call<string>("getReceipt", { orderId: o.id }, token);
+      receipts.current.set(o.id, p);
+      p.catch(() => receipts.current.delete(o.id));
+      return p;
+    },
+
+    saveProduct: async (raw) => {
+      let p: Product = { ...raw, price: fromPrice(raw.variants, raw.price) };
+      const put = (x: Product) => commit((d) => ({
+        ...d, products: d.products.some((y) => y.id === x.id) ? d.products.map((y) => (y.id === x.id ? x : y)) : [x, ...d.products],
+      }));
+      put(p);
+      if (!REMOTE) return;
+      await enqueue(async () => {
+        // photos go to Google Drive; the sheet stores their links
+        if (p.images.some((s) => s.startsWith("data:"))) {
+          const images = await Promise.all(p.images.map((s) => (s.startsWith("data:") ? call<string>("uploadImage", { dataUrl: s }, token) : Promise.resolve(s))));
+          p = { ...p, images };
+          put(p);
+        }
+        await call("saveProduct", { product: p }, token);
+      });
+    },
+    deleteProduct: (id) => {
+      commit((d) => ({ ...d, products: d.products.filter((p) => p.id !== id) }));
+      if (REMOTE) enqueue(() => call("deleteProduct", { id }, token));
+    },
+
+    setOrderStatus: (id, s, note) => {
+      const r = updateOrder(id, (o) => {
+        if (o.status === s) return o;
         const autoNote = s === "delivered" && o.codDue > 0 ? `Collected ${o.codDue} EGP cash on delivery` : undefined;
         return {
           ...o, status: s,
@@ -211,30 +392,45 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           codCollected: s === "delivered" ? true : o.codCollected,
           history: [...o.history, { status: s, at: new Date().toISOString(), by: me?.name, note: note ?? autoNote }],
         };
-      }),
-      products: s === "cancelled"
-        ? d.products.map((p) => {
-            const o = d.orders.find((x) => x.id === id);
-            if (!o || o.status === "cancelled") return p;
-            const q = o.lines.filter((l) => l.productId === p.id).reduce((t, l) => t + l.qty, 0);
+      });
+      // cancelling returns the stock (the server does this itself in sheets mode)
+      if (r && s === "cancelled" && r.cur.status !== "cancelled") {
+        commit((d) => ({
+          ...d, products: d.products.map((p) => {
+            const q = r.cur.lines.filter((l) => l.productId === p.id).reduce((t, l) => t + l.qty, 0);
             return q ? { ...p, stock: p.stock + q } : p;
-          })
-        : d.products,
-    })),
-    verifyPayment: (id, v, amount) => commit((d) => ({
-      ...d, orders: d.orders.map((o) => {
-        if (o.id !== id) return o;
+          }),
+        }));
+      }
+    },
+    verifyPayment: (id, v, amount) => {
+      updateOrder(id, (o) => {
         const verifiedDeposit = v ? (amount ?? o.payment.deposit) : undefined;
         return { ...o, paymentVerified: v, payment: { ...o.payment, verifiedDeposit }, codDue: Math.max(0, o.total - (verifiedDeposit ?? o.payment.deposit)) };
-      }),
-    })),
+      });
+    },
+
     addAdmin: async ({ name, email, role, password }) => {
-      if (db.admins.some((a) => a.email.toLowerCase() === email.toLowerCase())) return "An admin with that email already exists.";
       const passwordHash = await sha256(password);
+      if (REMOTE) {
+        try {
+          const admins = await call<AdminUser[]>("addAdmin", { name, email, role, passwordHash }, token);
+          commit((d) => ({ ...d, admins }));
+          return null;
+        } catch (err) { return (err as Error).message; }
+      }
+      if (db.admins.some((a) => a.email.toLowerCase() === email.toLowerCase())) return "An admin with that email already exists.";
       commit((d) => ({ ...d, admins: [...d.admins, { id: uid(), name, email, role, passwordHash, createdAt: new Date().toISOString() }] }));
       return null;
     },
-    removeAdmin: (id) => {
+    removeAdmin: async (id) => {
+      if (REMOTE) {
+        try {
+          const admins = await call<AdminUser[]>("removeAdmin", { id }, token);
+          commit((d) => ({ ...d, admins }));
+          return null;
+        } catch (err) { return (err as Error).message; }
+      }
       const a = db.admins.find((x) => x.id === id);
       if (!a) return null;
       if (a.id === me?.id) return "You can't remove your own account.";
@@ -244,14 +440,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     changePassword: async (id, pw) => {
       const h = await sha256(pw);
+      if (REMOTE) { await call("changePassword", { id, passwordHash: h }, token); return; }
       commit((d) => ({ ...d, admins: d.admins.map((a) => (a.id === id ? { ...a, passwordHash: h } : a)) }));
     },
-    markNoticesRead: () => commit((d) => ({ ...d, notices: d.notices.map((n) => ({ ...n, read: true })) })),
-    saveSettings: (s) => commit((d) => ({ ...d, settings: s })),
+    markNoticesRead: () => undefined,
+    saveSettings: (s) => {
+      commit((d) => ({ ...d, settings: s }));
+      if (REMOTE) enqueue(() => call("saveSettings", { settings: s }, token));
+    },
+    importCatalog: async () => {
+      if (!REMOTE) return;
+      await call("importCatalog", { products: SEED_PRODUCTS, settings: dbRef.current?.settings ?? SEED_SETTINGS }, token);
+      const c = await call<{ products: Product[]; settings: Settings }>("catalog");
+      safeSet(CATALOG_KEY, JSON.stringify(c));
+      commit((d) => ({ ...d, products: c.products.map(normalizeProduct), settings: withSettings(c.settings) }));
+    },
     clearSamples: () => commit((d) => ({ ...d, orders: d.orders.filter((o) => !o.sample) })),
     resetAll: async () => {
+      if (REMOTE) return;
       const d = await freshDB();
       safeSet(KEY, JSON.stringify(d));
+      dbRef.current = d;
       setDb(d);
       setCart([]);
     },
@@ -261,7 +470,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   if (!value) {
     return (
-      <div className="min-h-screen grid place-items-center bg-sand">
+      <div className="min-h-screen grid place-items-center bg-ink">
         <span className="font-ruqaa text-5xl text-topy animate-pulse">أثر</span>
       </div>
     );

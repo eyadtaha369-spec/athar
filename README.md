@@ -25,12 +25,17 @@ npm run build:single # one-file preview build → dist-single/index.html
 - **Products:** full CRUD, photo upload (up to 6, auto-compressed), options with price changes, custom-text field, inline stock edits, show/hide toggle. Generated artwork is used until real photos are uploaded.
 - **Settings:** payment accounts, delivery fees, free-delivery threshold, WhatsApp number. Sample orders are flagged and can be removed in one click.
 
-## Data
-`src/lib/store.tsx` is a localStorage mock backend — data lives in one browser only. For production:
-1. Create a Supabase project and run `supabase/schema.sql`.
-2. Replace the action bodies in `store.tsx` with `supabase-js` calls (tables + `receipts` private bucket + `product-images` public bucket are defined in the schema).
-3. Use Supabase Auth for admin sign-in (the `admins` table links to `auth.users`).
-4. For email/WhatsApp order alerts, add a Database Webhook on `orders` INSERT → Edge Function.
+## Data: Google Sheets backend
+Orders, products, settings and admin accounts are shared through one Google Sheet via a Google Apps Script
+web app (`google-apps-script/Code.gs`). Follow **`google-apps-script/SETUP.md`** (about 10 minutes), then put the
+`/exec` URL in `src/config.ts` or the `VITE_SHEETS_API_URL` env var on Vercel.
+
+- Every order is saved to the **Orders** sheet the moment the customer submits it. The deposit screenshot goes to a private **ATHAR Receipts** folder in Drive.
+- The server re-prices every order from the Products sheet, so totals can't be edited in the browser.
+- `/admin` checks for new orders every 12 seconds and on tab focus. New orders show a banner, a bell badge, a chime, a flashing tab title and (if enabled) a desktop pop-up. The owner also gets an email per order.
+- Without a URL configured the store runs in **demo mode**: data stays in the browser (useful for previews).
+
+`supabase/schema.sql` is kept as an alternative if you later move to Supabase.
 
 ## Brand tokens (`tailwind.config.js`)
 sand `#EFECE6` · ramly `#E3DAC9` · topy `#A85B3E` · fahmy `#222222` · zeyti `#606859`
