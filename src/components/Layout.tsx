@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { IconMark, Logo, Mark, ProductImage, Toast } from "./ui";
+import { FreeDeliveryBar, IconMark, Logo, Mark, ProductImage, Toast } from "./ui";
 import Preloader from "./Preloader";
 import { linePrice, useStore } from "../lib/store";
-import { CATEGORY_LABEL, cx, egp } from "../lib/utils";
+import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp } from "../lib/utils";
 
 const NAV = [
   { to: "/shop", label: "Shop all" },
@@ -84,7 +84,6 @@ function CartDrawer() {
   const nav = useNavigate();
   const rows = cart.map((c) => ({ c, p: db.products.find((p) => p.id === c.productId) })).filter((r) => r.p);
   const subtotal = rows.reduce((s, r) => s + linePrice(r.p!, r.c.variantId) * r.c.qty, 0);
-  const toFree = Math.max(0, settings.freeShippingOver - subtotal);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && setCartOpen(false);
@@ -119,11 +118,9 @@ function CartDrawer() {
               </div>
             ) : (
               <>
-                <div className="px-6 py-4 text-sm bg-ramly/60">
-                  {toFree > 0 ? <>Add <b className="tnum">{egp(toFree)}</b> more for free delivery.</> : <>Your order ships free.</>}
-                  <div className="mt-2 h-1 rounded-full bg-fahmy/10 overflow-hidden">
-                    <div className="h-full bg-topy transition-all" style={{ width: `${Math.min(100, (subtotal / settings.freeShippingOver) * 100)}%` }} />
-                  </div>
+                <div className="px-6 py-4 bg-ramly/60">
+                  <FreeDeliveryBar subtotal={subtotal} threshold={settings.freeShippingOver} />
+                  <p className="text-xs text-stone mt-2">Delivery in {DELIVERY_ETA.en} <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span></p>
                 </div>
                 <ul className="flex-1 overflow-y-auto px-6 divide-y divide-fahmy/10">
                   {rows.map(({ c, p }) => {

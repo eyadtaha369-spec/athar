@@ -130,6 +130,24 @@ export function Toast() {
   );
 }
 
+/** Free-delivery progress: how far the cart is from the threshold. */
+export function FreeDeliveryBar({ subtotal, threshold, className = "" }: { subtotal: number; threshold: number; className?: string }) {
+  const left = Math.max(0, threshold - subtotal);
+  const pct = Math.min(100, (subtotal / threshold) * 100);
+  return (
+    <div className={cx("text-sm", className)} role="status">
+      <p>
+        {left > 0
+          ? <>Add <b className="tnum">{egp(left)}</b> more to get <b>free delivery</b> on orders from {egp(threshold)}.</>
+          : <><b>Free delivery unlocked.</b> Your order ships free.</>}
+      </p>
+      <div className="mt-2 h-1.5 rounded-full bg-fahmy/10 overflow-hidden" aria-hidden>
+        <div className={cx("h-full transition-all duration-500", left > 0 ? "bg-topy" : "bg-zeyti")} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export function CopyRow({ label, value }: { label: string; value: string }) {
   const [done, setDone] = useState(false);
   const copy = async () => {

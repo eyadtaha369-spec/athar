@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ImageUp, Landmark, Smartphone, Wallet, X } from "lucide-react";
 import { linePrice, useStore } from "../lib/store";
-import { CopyRow, ProductImage } from "../components/ui";
-import { GOVERNORATES, compressImage, cx, egp, isCoreZone } from "../lib/utils";
+import { CopyRow, FreeDeliveryBar, ProductImage } from "../components/ui";
+import { DELIVERY_ETA, GOVERNORATES, compressImage, cx, egp, shippingFee } from "../lib/utils";
 import type { PayMethod } from "../lib/types";
 
 const PHONE = /^01[0125]\d{8}$/;
@@ -26,10 +26,10 @@ export default function Checkout() {
 
   const rows = cart.map((c) => ({ c, p: db.products.find((p) => p.id === c.productId)! })).filter((r) => r.p);
   const subtotal = rows.reduce((t, r) => t + linePrice(r.p, r.c.variantId) * r.c.qty, 0);
+  // Free delivery from the threshold up, applied before a governorate is even chosen
   const fee = useMemo(() => {
-    if (!f.governorate) return null;
     if (subtotal >= s.freeShippingOver) return 0;
-    return isCoreZone(f.governorate) ? s.shippingCairoAlex : s.shippingOther;
+    return f.governorate ? shippingFee(subtotal, f.governorate, s) : null;
   }, [f.governorate, subtotal, s]);
   const total = subtotal + (fee ?? 0);
   // Deposit: at least the minimum (or the whole order if it costs less), never more than the total
@@ -284,11 +284,13 @@ export default function Checkout() {
           </ul>
           <dl className="mt-4 pt-4 border-t border-fahmy/10 space-y-2 text-[15px] tnum">
             <div className="flex justify-between"><dt className="text-stone">Subtotal</dt><dd>{egp(subtotal)}</dd></div>
-            <div className="flex justify-between"><dt className="text-stone">Delivery</dt><dd>{fee === null ? "Choose governorate" : fee === 0 ? "Free" : egp(fee)}</dd></div>
+            <div className="flex justify-between"><dt className="text-stone">Delivery</dt><dd>{fee === 0 ? <span className="text-zeyti font-medium">Free</span> : fee === null ? "Choose governorate" : egp(fee)}</dd></div>
             <div className="flex justify-between text-lg font-semibold pt-2 border-t border-fahmy/10"><dt>Total</dt><dd>{egp(total)}</dd></div>
             <div className="flex justify-between pt-2"><dt className="text-stone">Deposit now</dt><dd className="font-medium">{deposit >= minDep ? egp(Math.min(deposit, total || deposit)) : "—"}</dd></div>
             <div className="flex justify-between"><dt className="text-stone">Cash on delivery</dt><dd className="font-medium">{fee === null ? "—" : egp(cod)}</dd></div>
           </dl>
+          <FreeDeliveryBar subtotal={subtotal} threshold={s.freeShippingOver} className="mt-5 rounded-lg bg-ramly/60 p-3.5" />
+          <p className="text-sm text-stone mt-3">Delivery in <b className="text-fahmy">{DELIVERY_ETA.en}</b> <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span> after we confirm your deposit.</p>
           {errors.stock && <p className="text-topy text-sm mt-4" role="alert" data-field="stock">{errors.stock}</p>}
           <button type="submit" className="btn-topy w-full mt-6" disabled={submitting || uploading}>{submitting ? "Placing order…" : "Place order"}</button>
           <p className="text-xs text-stone mt-3 leading-relaxed">Your order is reserved as soon as you place it. It stays pending until we verify your deposit, usually within a few hours, and we confirm on WhatsApp.</p>

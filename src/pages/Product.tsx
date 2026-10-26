@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { linePrice, useStore } from "../lib/store";
 import { Accordion, ProductCard, ProductImage } from "../components/ui";
-import { CATEGORY_LABEL, cx, egp } from "../lib/utils";
+import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp } from "../lib/utils";
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -116,14 +116,14 @@ export default function ProductPage() {
             </div>
             {err && <p className="text-topy text-sm mt-3" role="alert">{err}</p>}
             <p className="text-sm text-stone mt-3">
-              {soldOut ? "Back soon. Message us to be told when it's restocked." : p.stock <= 5 ? `Only ${p.stock} left in stock.` : "In stock, ships in 1–2 working days."}
+              {soldOut ? "Back soon. Message us to be told when it's restocked." : p.stock <= 5 ? `Only ${p.stock} left in stock.` : `In stock. Delivered in ${DELIVERY_ETA.en}.`}
             </p>
 
             <div className="mt-10">
               <Accordion defaultOpen={0} items={[
                 { q: "Details", a: <ul className="list-disc pl-5 space-y-1">{p.details.map((d) => <li key={d}>{d}</li>)}</ul> },
                 { q: "Payment", a: `Pay a deposit from ${db.settings.minDeposit} EGP by InstaPay, mobile wallet or bank transfer and upload the receipt at checkout. The rest is paid in cash on delivery.` },
-                { q: "Delivery", a: `${db.settings.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, ${db.settings.shippingOther} EGP elsewhere. Free over ${db.settings.freeShippingOver.toLocaleString()} EGP. Usually 3–5 working days.` },
+                { q: "Delivery", a: `${db.settings.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, ${db.settings.shippingOther} EGP elsewhere. Free delivery on orders from ${db.settings.freeShippingOver.toLocaleString()} EGP. Delivery takes ${DELIVERY_ETA.en} (${DELIVERY_ETA.ar}).` },
               ]} />
             </div>
           </div>

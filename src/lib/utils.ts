@@ -70,4 +70,13 @@ export const STATUS_META: Record<string, { label: string; ar: string; cls: strin
 /** Deposit actually counted for an order: the admin-verified amount once checked. */
 export const depositOf = (o: { payment: { deposit: number; verifiedDeposit?: number } }) => o.payment.verifiedDeposit ?? o.payment.deposit;
 
+/** Standard delivery time for every order. */
+export const DELIVERY_ETA = { en: "5 to 7 working days", ar: "من 5 إلى 7 أيام عمل" };
+
+/** Delivery fee for a cart: free from the threshold up, otherwise the zone rate. */
+export function shippingFee(subtotal: number, governorate: string, s: { freeShippingOver: number; shippingCairoAlex: number; shippingOther: number }) {
+  if (subtotal >= s.freeShippingOver) return 0;
+  return isCoreZone(governorate) ? s.shippingCairoAlex : s.shippingOther;
+}
+
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");

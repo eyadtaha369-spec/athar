@@ -4,7 +4,7 @@ import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTran
 import { useStore } from "../lib/store";
 import { Accordion, Mark, ProductCard, ProductImage } from "../components/ui";
 import { img } from "../lib/assets";
-import { CATEGORY_LABEL, cx, egp, fmtDate } from "../lib/utils";
+import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp, fmtDate } from "../lib/utils";
 import type { Product } from "../lib/types";
 
 const ease = [0.2, 0.7, 0.2, 1] as const;
@@ -183,7 +183,7 @@ function Process() {
     ["Pick", "Choose your design, size or phone model. Custom text if it has it."],
     ["Deposit", "Transfer a deposit from 100 EGP by InstaPay, wallet or bank."],
     ["Upload", "Attach the deposit receipt. We verify it and confirm your order."],
-    ["Receive", "Pay the rest in cash to the courier when your order arrives."],
+    ["Receive", `Delivered in ${DELIVERY_ETA.en}. Pay the rest in cash to the courier.`],
   ];
   return (
     <section className="bg-ink text-sand relative">
@@ -281,7 +281,7 @@ function Record() {
   const stamps = [
     { v: String(flags), l: "Flag designs", cls: "bg-sand text-ink -rotate-2" },
     { v: "27", l: "Governorates we deliver to", cls: "bg-topy text-white rotate-1" },
-    { v: "48h", l: "To confirm your payment", cls: "border border-sand/30 text-sand -rotate-1" },
+    { v: "5–7", l: "Working days to your door", cls: "border border-sand/30 text-sand -rotate-1" },
   ];
   return (
     <section className="bg-ink text-sand">
@@ -329,7 +329,7 @@ function FAQ() {
         <Accordion dark defaultOpen={0} items={[
           { q: "How do I pay?", a: <>Pay a deposit of at least {s.minDeposit} EGP by InstaPay, mobile wallet ({s.wallet.providers}) or bank transfer, and upload the receipt at checkout. You pay the rest in cash when the courier delivers your order. You can also pay the full amount upfront.</> },
           { q: "When is my order confirmed?", a: "Your order stays pending until we check your deposit receipt by hand, usually within a few hours on working days. You'll get a WhatsApp message once it's confirmed, and you can follow it on the Track order page." },
-          { q: "How much is delivery?", a: <>{s.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, {s.shippingOther} EGP to other governorates, and free over {s.freeShippingOver.toLocaleString()} EGP. Most orders arrive in 3–5 working days.</> },
+          { q: "How much is delivery?", a: <>{s.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, {s.shippingOther} EGP to other governorates, and free for orders of {s.freeShippingOver.toLocaleString()} EGP or more. Every order is delivered in {DELIVERY_ETA.en} <span className="font-ar" lang="ar">({DELIVERY_ETA.ar})</span>.</> },
           { q: "What are the flags made of?", a: "Knitted polyester printed edge to edge, with brass grommets and wall hooks in the box. They're light, don't crease much, and are safe to wash cold." },
           { q: "Can I return or exchange?", a: "Unused items can be exchanged within 14 days. Custom flags and personalised cases are made for you, so we replace those only if they arrive damaged or misprinted." },
           { q: "Can I order my own design?", a: "Yes. Choose Custom Flag, write your text at checkout, and we'll send you a proof on WhatsApp before we print. For a full image, send it to us on WhatsApp after you order." },

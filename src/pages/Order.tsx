@@ -4,13 +4,13 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { useStore } from "../lib/store";
 import type { Order } from "../lib/types";
-import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
+import { DELIVERY_ETA, STATUS_META, cx, egp, fmtDate } from "../lib/utils";
 
 const FLOW = ["pending", "confirmed", "shipped", "delivered"] as const;
 const FLOW_COPY: Record<string, string> = {
   pending: "We're checking your deposit receipt",
   confirmed: "Payment confirmed, preparing your order",
-  shipped: "With the courier",
+  shipped: `With the courier, ${DELIVERY_ETA.en} from confirmation`,
   delivered: "Delivered",
 };
 
@@ -57,7 +57,7 @@ export function OrderDone() {
       )}
       <h1 className="display text-5xl md:text-8xl mt-4">{fresh ? "Order placed" : `Order ${o.number}`}</h1>
       <p className="text-stone mt-3 max-w-[56ch] text-lg">
-        {fresh ? <>Your order number is <b className="text-fahmy tnum">{o.number}</b>. We're checking your deposit receipt now and will message you on WhatsApp at <span className="tnum">{o.customer.phone}</span> once it's confirmed.</>
+        {fresh ? <>Your order number is <b className="text-fahmy tnum">{o.number}</b>. We're checking your deposit receipt now and will message you on WhatsApp at <span className="tnum">{o.customer.phone}</span> once it's confirmed. Delivery takes {DELIVERY_ETA.en} <span className="font-ar" lang="ar">({DELIVERY_ETA.ar})</span> after confirmation.</>
           : <>Placed {fmtDate(o.createdAt, true)}.</>}
       </p>
 
