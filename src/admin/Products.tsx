@@ -96,22 +96,11 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
               {p.images.length === 0 && (
                 <div className="aspect-[4/5] rounded-xl overflow-hidden bg-ramly relative">
                   <ProductImage p={p} />
-                  <span className="absolute inset-x-0 bottom-0 text-[11px] text-center bg-fahmy/70 text-sand py-1">Artwork shown until you add photos</span>
+                  <span className="absolute inset-x-0 bottom-0 text-[11px] text-center bg-fahmy/70 text-sand py-1">Placeholder shown until you add photos</span>
                 </div>
               )}
             </div>
             <E k="images" />
-            {p.images.length === 0 && (
-              <div className="flex gap-2 mt-3 items-center">
-                <span className="text-sm text-stone mr-1">Artwork colours</span>
-                {PALETTES.map((pal, i) => (
-                  <button key={i} type="button" onClick={() => up("palette", pal)} aria-label={`Palette ${i + 1}`}
-                    className={cx("w-8 h-8 rounded-full overflow-hidden border-2 flex", p.palette.join() === pal.join() ? "border-fahmy" : "border-transparent")}>
-                    {pal.map((c) => <span key={c} className="flex-1" style={{ background: c }} />)}
-                  </button>
-                ))}
-              </div>
-            )}
           </section>
 
           <section className="grid sm:grid-cols-2 gap-4">

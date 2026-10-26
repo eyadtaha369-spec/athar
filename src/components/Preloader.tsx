@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { img } from "../lib/assets";
-import { Mark } from "./ui";
+import { ImagePlaceholder, Mark } from "./ui";
 
-const CARDS = ["flags/bmw-m4-cover", "flags/aurora-valley-cover", "flags/the-godfather-cover", "flags/danger-zone-cover", "flags/starry-castle-cover"];
+const CARDS = ["Flags", "Posters", "Phone cases", "Laptop sleeves", "Sunshades"];
 const KEY = "athar:intro-seen";
 
 /** Opening sequence: a counter runs to 100 while flags stack into the vault, then the curtain lifts. */
@@ -57,7 +56,7 @@ export default function Preloader() {
                   animate={{ y: 0, rotate: (i - 2) * 5, x: (i - 2) * 18 }}
                   transition={{ delay: 0.15 + i * 0.28, duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
                 >
-                  <img src={img("asset:" + k)} alt="" className="w-full h-full object-cover" />
+                  <ImagePlaceholder title={k} tone={i % 2 ? "dark" : "sand"} />
                 </motion.div>
               ))}
             </div>

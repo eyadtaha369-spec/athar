@@ -2,9 +2,8 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import ProductArt from "./ProductArt";
 import type { Product } from "../lib/types";
-import { cx, egp } from "../lib/utils";
+import { CATEGORY_LABEL, cx, egp } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
 import { hasPriceRange } from "../lib/pricing";
@@ -26,12 +25,32 @@ export function Logo({ light = false, className = "" }: { light?: boolean; class
   );
 }
 
-export function ProductImage({ p, i = 0, className = "", text }: { p: Product; i?: number; className?: string; text?: string }) {
+/**
+ * Neutral stand-in for a photo. Text scales with the card (container units),
+ * so it reads on a large hero card and stays tidy on a small thumbnail.
+ */
+export function ImagePlaceholder({ title, label, tone = "sand", className = "" }: { title?: string; label?: string; tone?: "sand" | "dark"; className?: string }) {
+  return (
+    <div
+      className={cx("relative w-full h-full overflow-hidden flex flex-col items-center justify-center text-center", tone === "dark" ? "bg-[#26241F] text-sand/80" : "bg-ramly text-fahmy/75", className)}
+      style={{ containerType: "inline-size" }}
+      role="img"
+      aria-label={title ? `${title}, photo coming soon` : "Photo coming soon"}
+    >
+      <div aria-hidden className={cx("absolute inset-0 lattice [background-size:22px_22px]", tone === "dark" ? "text-sand/[0.05]" : "text-fahmy/[0.05]")} />
+      <IconMark className={cx("relative w-[16cqw] min-w-[14px] max-w-[64px]", tone === "dark" ? "text-sand/25" : "text-fahmy/20")} />
+      {label && <p className="relative mt-[5cqw] uppercase tracking-[0.18em] text-[clamp(7px,3.6cqw,13px)] opacity-60">{label}</p>}
+      {title && <p className="relative mt-[2cqw] px-[8cqw] display leading-[0.92] text-[clamp(8px,9cqw,44px)] text-balance">{title}</p>}
+    </div>
+  );
+}
+
+export function ProductImage({ p, i = 0, className = "" }: { p: Product; i?: number; className?: string; text?: string }) {
   const src = p.images[i];
   return src ? (
     <img src={img(src)} alt={p.name} className={cx("w-full h-full", className.includes("object-contain") ? "" : "object-cover", className)} loading="lazy" />
   ) : (
-    <ProductArt kind={p.art} palette={p.palette} text={text} className={cx("w-full h-full", className)} />
+    <ImagePlaceholder title={p.name} label={CATEGORY_LABEL[p.category]?.en} className={className.replace("object-contain", "")} />
   );
 }
 

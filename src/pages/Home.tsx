@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, MotionValue, useMotionValueEvent } from "framer-motion";
 import { useStore } from "../lib/store";
-import { Accordion, Mark, ProductCard, ProductImage } from "../components/ui";
+import { Accordion, ImagePlaceholder, Mark, ProductCard, ProductImage } from "../components/ui";
 import { img } from "../lib/assets";
 import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp, fmtDate } from "../lib/utils";
 import type { Product } from "../lib/types";
@@ -237,11 +237,6 @@ function Drop({ p }: { p: Product }) {
   );
 }
 
-const CAT_PHOTO: Record<string, string> = {
-  flags: "life/poster-flag", posters: "life/wall-posters", cases: "life/cases",
-  sunshades: "life/sunshade", umbrellas: "life/umbrella",
-};
-
 function Categories({ products }: { products: Product[] }) {
   const cats = Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ k, ...v, count: products.filter((p) => p.category === k).length, sample: products.find((p) => p.category === k) }));
   const spans = ["md:col-span-7 md:row-span-2", "md:col-span-5", "md:col-span-5", "md:col-span-4", "md:col-span-4", "md:col-span-4"];
@@ -257,16 +252,17 @@ function Categories({ products }: { products: Product[] }) {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-4 md:auto-rows-[250px]">
           {cats.map((c, i) => (
-            <Link key={c.k} to={`/shop?c=${c.k}`} className={cx("group relative overflow-hidden rounded-xl bg-fahmy", spans[i], i === 0 ? "col-span-2 aspect-[4/3] md:aspect-auto" : "aspect-[4/5] md:aspect-auto")}>
-              {CAT_PHOTO[c.k]
-                ? <img src={img("asset:" + CAT_PHOTO[c.k])} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" loading="lazy" />
-                : c.sample && <div className="absolute inset-0 transition-transform duration-[900ms] group-hover:scale-105"><ProductImage p={c.sample} /></div>}
-              <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 bg-gradient-to-t from-ink/85 via-ink/35 to-transparent text-sand flex items-end justify-between gap-3">
+            <Link key={c.k} to={`/shop?c=${c.k}`} className={cx("group relative overflow-hidden rounded-xl bg-ramly", spans[i], i === 0 ? "col-span-2 aspect-[4/3] md:aspect-auto" : "aspect-[4/5] md:aspect-auto")}>
+              {/* Category banner slot: drop the real photo in here later */}
+              <div className="absolute inset-0 transition-transform duration-[900ms] group-hover:scale-105">
+                <ImagePlaceholder />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 text-fahmy flex items-end justify-between gap-3">
                 <div>
-                  <p className="font-ar text-sm text-sand/75" lang="ar">{c.ar}</p>
+                  <p className="font-ar text-sm text-fahmy/60" lang="ar">{c.ar}</p>
                   <p className="display text-2xl md:text-4xl">{c.en}</p>
                 </div>
-                <span className="tnum text-sm text-sand/70 shrink-0">{c.count}</span>
+                <span className="tnum text-sm text-fahmy/50 shrink-0">{c.count} {c.count === 1 ? "piece" : "pieces"}</span>
               </div>
             </Link>
           ))}

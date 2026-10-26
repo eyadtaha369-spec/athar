@@ -37,7 +37,7 @@ export const FLAG_PRODUCTS: Product[] = FLAGS.map(([slug, name, nameAr, collecti
   details: flagDetails,
   variants: presetVariants("flags"),
   variantLabel: "Size",
-  images: ["asset:flags/" + slug + "-cover", "asset:flags/" + slug],
+  images: [],
   art: "flag",
   palette: ["#222222", "#E6DED1", "#A85B3E"],
   createdAt: ago(5 + i * 3),
@@ -48,16 +48,13 @@ export const LIFESTYLE: Record<string, Partial<Product>> = {
   p9: {
     name: "Signature Phone Case", nameAr: "جراب أثر", slug: "signature-phone-case",
     description: "Soft-touch matte case with the أثر icon in sand. Comes in charcoal, sand, olive and clay; tell us your colour in the order notes.",
-    images: ["asset:life/case-hand", "asset:life/cases"],
   },
   p11: {
     name: "Signature Car Sunshade", nameAr: "شمسية عربية أثر", slug: "signature-car-sunshade",
     description: "Charcoal windshield shade with the أثر logo facing out. Keeps the cabin cooler through an Egyptian August.",
-    images: ["asset:life/sunshade"],
   },
   p13: {
     name: "Signature Umbrella", nameAr: "شمسية أثر", slug: "signature-umbrella",
     description: "Black automatic umbrella with a UV-blocking canopy and the أثر mark printed in sand.",
-    images: ["asset:life/umbrella"],
   },
 };

@@ -10,7 +10,7 @@ import { SEED_PRODUCTS, SEED_SETTINGS, seedOrders } from "./seed";
 import { sha256, uid } from "./utils";
 import { fromPrice, normalizeProduct } from "./pricing";
 
-const KEY = "athar:db:v6";
+const KEY = "athar:db:v7";
 const CART_KEY = "athar:cart:v2";
 const SESSION_KEY = "athar:admin-session";
 
