@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ATHAR — sand paper ground, charcoal vault bands, terracotta as the single accent.
+   Layout: editorial storefront with one pinned horizontal "vault" and sticky product columns. */
+:root {
+  --sand: #efece6;
+  --ink: #141311;
+  --paper: #f7f4ee;
+  --ramly: #e3dac9;
+  --topy: #a85b3e;
+  --fahmy: #222222;
+  --zeyti: #606859;
+  --stone: #7a736a;
+  color-scheme: light;
+}
+
+html { scroll-behavior: smooth; }
+html, body { background: var(--sand); color: var(--fahmy); }
+body {
+  font-family: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  font-variation-settings: "wdth" 100;
+  -webkit-font-smoothing: antialiased;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 60; background: var(--sand);
+}
+
+/* Paper grain — subtle noise over the whole page */
+.grain::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .06;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.wide { font-variation-settings: "wdth" 125; }
+/* Display: heavy condensed italic caps, as in the reference */
+.display {
+  font-family: "Archivo Variable", "Archivo", "Arial Narrow", sans-serif; font-style: italic; font-weight: 900;
+  font-variation-settings: "wdth" 62; text-transform: uppercase; letter-spacing: -0.005em; line-height: .86;
+}
+/* ATHAR logotype: thin, wide, tracked */
+.logotype { font-weight: 300; font-variation-settings: "wdth" 125; letter-spacing: .42em; text-transform: uppercase; }
+.mark {
+  display: inline-block; background: currentColor; aspect-ratio: 900 / 641;
+  -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat;
+}
+.icon-mark { aspect-ratio: 900 / 877; -webkit-mask-image: var(--icon); mask-image: var(--icon); }
+/* Geometric lattice from the brand pattern, used as hairline texture */
+.lattice {
+  background-image:
+    linear-gradient(45deg, transparent 48.5%, currentColor 49.5%, currentColor 50.5%, transparent 51.5%),
+    linear-gradient(-45deg, transparent 48.5%, currentColor 49.5%, currentColor 50.5%, transparent 51.5%);
+  background-size: 44px 44px;
+}
+.narrow { font-variation-settings: "wdth" 72; }
+.tnum { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; }
+
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 768px) { .gutter { padding-left: 40px; padding-right: 40px; } }
+
+:focus-visible { outline: 2px solid var(--topy); outline-offset: 3px; }
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-6 h-12 text-[15px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-dark { @apply btn bg-fahmy text-sand hover:bg-black; }
+.btn-topy { @apply btn bg-topy text-white hover:bg-topy-dark; }
+.btn-line { @apply btn border border-fahmy/25 hover:border-fahmy; }
+.field {
+  @apply w-full h-12 rounded-xl bg-paper border border-fahmy/15 px-4 text-[15px] outline-none transition-colors placeholder:text-stone/70 focus:border-topy;
+}
+textarea.field { @apply h-auto py-3; }
+.label { @apply block text-sm text-stone mb-1.5; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
