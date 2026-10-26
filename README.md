@@ -18,11 +18,11 @@ npm run build:single # one-file preview build → dist-single/index.html
 **Demo admin:** `owner@athar.eg` / `athar2026` — change it in Admin → Team, and remove the demo hint in `src/admin/AdminLayout.tsx` (Login) before launch.
 
 ## How it works
-- **Checkout:** no COD. Customer picks InstaPay / mobile wallet / bank transfer, sees the exact total + account details (copy buttons), and must upload a receipt screenshot to place the order. Stock is reserved on order; returned on cancel.
-- **Admin notifications:** new orders show a bell badge + toast instantly (cross-tab in the demo; Supabase Realtime in production).
-- **Orders:** view receipt full-size → tick "Payment received and matches" → Confirm → Shipped → Delivered. Cancel with a reason. WhatsApp link per customer.
+- **Checkout:** deposit + cash on delivery. Customer pays a deposit (min 100 EGP) by InstaPay / wallet / bank transfer, uploads the receipt, and pays the rest in cash on delivery. Free delivery from 1,500 EGP; delivery in 5 to 7 working days. Stock is reserved on order; returned on cancel.
+- **Admin notifications:** live banner, bell badge, chime, tab title and desktop pop-ups for every new order, plus an email (Sheets mode).
+- **Orders:** view the deposit receipt full-size → enter the amount it shows → **Confirm order (تأكيد الطلب)** → Shipped → Delivered (cash collected). Cancel with a reason. WhatsApp link per customer.
 - **Roles:** owner (everything), admin (orders + products), staff (orders only).
-- **Products:** full CRUD, photo upload (up to 6, auto-compressed), options with price changes, custom-text field, inline stock edits, show/hide toggle. Generated artwork is used until real photos are uploaded.
+- **Products:** full CRUD, photo upload (up to 6, auto-compressed), sizes with their own selling prices, custom-text field, inline stock edits, show/hide toggle. A neutral placeholder shows until real photos are uploaded.
 - **Settings:** payment accounts, delivery fees, free-delivery threshold, WhatsApp number. Sample orders are flagged and can be removed in one click.
 
 ## Data: Google Sheets backend
