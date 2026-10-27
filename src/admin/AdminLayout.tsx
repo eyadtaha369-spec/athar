@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, BellRing, BarChart3, LogOut, Package, Settings as Cog, ShoppingCart, Store, Users, Volume2, VolumeX, X } from "lucide-react";
+import { Bell, BellRing, BarChart3, LogOut, Megaphone, Package, Settings as Cog, ShoppingCart, Store, Users, Volume2, VolumeX, X } from "lucide-react";
 import { useOrderAlerts } from "./alerts";
 import { useStore, DEFAULT_OWNER } from "../lib/store";
 import { Lockup, Logo, Toast } from "../components/ui";
@@ -156,6 +156,7 @@ export default function AdminLayout() {
     { to: "/admin", label: "Overview", icon: BarChart3, end: true, show: true },
     { to: "/admin/orders", label: "Orders", icon: ShoppingCart, badge: pending, show: true },
     { to: "/admin/products", label: "Products", icon: Package, show: can(me.role, "products") },
+    { to: "/admin/push", label: "Push", icon: Megaphone, show: can(me.role, "products") },
     { to: "/admin/team", label: "Team", icon: Users, show: can(me.role, "team") },
     { to: "/admin/settings", label: "Settings", icon: Cog, show: can(me.role, "settings") },
   ].filter((n) => n.show);

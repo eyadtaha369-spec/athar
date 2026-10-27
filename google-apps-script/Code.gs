@@ -10,18 +10,22 @@
  *   Products  one row per product
  *   Settings  store settings as JSON
  *   Admins    admin accounts (password stored as SHA-256 hash)
+ *   Subscribers  browsers that turned on push notifications (linked to order numbers / phones)
+ *   PushLog      every broadcast sent from the admin
  * Deposit receipts are saved privately in the Drive folder "ATHAR Receipts".
  * Product photos are saved in "ATHAR Product Photos" (viewable by link, so the store can show them).
  */
 
-const SHEET = { orders: "Orders", products: "Products", settings: "Settings", admins: "Admins" };
+const SHEET = { orders: "Orders", products: "Products", settings: "Settings", admins: "Admins", subscribers: "Subscribers", pushLog: "PushLog" };
 const HEADERS = {
   Orders: ["id", "number", "createdAt", "status", "customer", "phone", "governorate", "city", "address", "items", "total", "deposit", "verifiedDeposit", "codDue", "method", "paymentVerified", "receiptFile", "json"],
   Products: ["id", "name", "category", "fromPrice", "stock", "active", "json"],
   Settings: ["json"],
   Admins: ["id", "name", "email", "role", "passwordHash", "createdAt", "lastLogin"],
+  Subscribers: ["id", "endpoint", "json", "phones", "orders", "createdAt", "lastSeen"],
+  PushLog: ["at", "by", "title", "body", "url", "audience", "sent", "failed"],
 };
-const PUBLIC = ["ping", "catalog", "placeOrder", "trackOrder", "login"];
+const PUBLIC = ["ping", "catalog", "placeOrder", "trackOrder", "login", "subscribePush", "unsubscribePush"];
 const SESSION_HOURS = 6;
 const CORE_ZONES = ["Cairo", "Giza", "Alexandria"];
 
@@ -222,6 +226,38 @@ const ROUTES = {
     return listAdmins_(false);
   },
 
+  /* ---------- push notifications ---------- */
+
+  // A browser turned on notifications. Re-subscribing merges new phones / order numbers into the same row.
+  subscribePush: (b) => {
+    const sub = b.subscription;
+    if (!sub || !sub.endpoint || !sub.keys) throw new Error("That browser didn't send a valid subscription.");
+    const id = sha256_(sub.endpoint).slice(0, 24);
+    const existing = listSubscribers_().find((s) => s.id === id);
+    const merge = (a, extra) => Array.from(new Set((a || []).concat(extra || []).map(String).filter(Boolean))).slice(-20);
+    const now = new Date().toISOString();
+    upsert_(SHEET.subscribers, id, [id, sub.endpoint, JSON.stringify(sub),
+      // leading apostrophe keeps Sheets from turning 010… phone numbers into numbers
+      "'" + merge(existing && existing.phones, b.phones).join(","), merge(existing && existing.orders, b.orders).join(","),
+      existing ? existing.createdAt : now, now]);
+    return { id: id };
+  },
+
+  unsubscribePush: (b) => { if (b.endpoint) deleteRow_(SHEET.subscribers, sha256_(b.endpoint).slice(0, 24)); return true; },
+
+  listSubscriptions: (b, admin) => { requireRole_(admin, ["owner", "admin", "staff"]); return listSubscribers_(); },
+
+  removeSubscriptions: (b, admin) => { (b.ids || []).forEach((id) => deleteRow_(SHEET.subscribers, id)); return true; },
+
+  pushStats: () => ({ subscribers: listSubscribers_().length, log: rows_(SHEET.pushLog).slice(-15).reverse().map((r) => ({
+    at: String(r[0]), by: r[1], title: r[2], body: r[3], url: r[4], audience: r[5], sent: r[6], failed: r[7] })) }),
+
+  logPush: (b, admin) => {
+    requireRole_(admin, ["owner", "admin"]);
+    sheet_(SHEET.pushLog).appendRow([new Date().toISOString(), admin.name, b.title, b.body, b.url || "", b.audience || "all", b.sent || 0, b.failed || 0]);
+    return true;
+  },
+
   changePassword: (b, admin) => {
     const all = listAdmins_(true);
     const target = all.find((a) => a.id === b.id);
@@ -325,6 +361,14 @@ function listAdmins_(withHash) {
     if (withHash) a.passwordHash = r[4];
     return a;
   });
+}
+
+function listSubscribers_() {
+  return rows_(SHEET.subscribers).filter((r) => r[0]).map((r) => ({
+    id: String(r[0]), subscription: JSON.parse(r[2]),
+    phones: String(r[3] || "").replace(/^'/, "").split(",").map((p) => p.replace(/\D/g, "")).filter(Boolean), orders: String(r[4] || "").split(",").filter(Boolean),
+    createdAt: String(r[5]),
+  }));
 }
 
 function writeAdmin_(a) {

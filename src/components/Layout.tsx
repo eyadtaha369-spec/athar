@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { FreeDeliveryBar, IconMark, Lockup, Logo, Mark, ProductImage, Toast, Wordmark } from "./ui";
 import Preloader from "./Preloader";
+import { PushPrompt, PushToggle } from "./Push";
+import { registerServiceWorker } from "../lib/push";
 import { linePrice, useStore } from "../lib/store";
 import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp } from "../lib/utils";
 
@@ -191,6 +193,7 @@ function Footer() {
               <li><a className="hover:text-topy" href="https://instagram.com" target="_blank" rel="noreferrer">Instagram</a></li>
               <li><a className="hover:text-topy" href="https://tiktok.com" target="_blank" rel="noreferrer">TikTok</a></li>
               <li><Link className="hover:text-topy" to="/admin">Admin login</Link></li>
+              <li className="pt-2"><PushToggle dark /></li>
             </ul>
           </div>
         </div>
@@ -205,6 +208,7 @@ function Footer() {
 }
 
 export default function StoreLayout() {
+  useEffect(() => { registerServiceWorker(); }, []);
   const loc = useLocation();
   const dark = false; // every page opens on Ramly sand
   useEffect(() => {
@@ -214,6 +218,7 @@ export default function StoreLayout() {
   return (
     <div className={cx("grain min-h-screen flex flex-col", dark && "bg-ink")}>
       <Preloader />
+      <PushPrompt />
       <Header dark={dark} />
       <main className="flex-1 relative z-[2]"><Outlet /></main>
       <Footer />

@@ -37,6 +37,14 @@ web app (`google-apps-script/Code.gs`). Follow **`google-apps-script/SETUP.md`**
 
 `supabase/schema.sql` is kept as an alternative if you later move to Supabase.
 
+## Push notifications
+
+- Customers opt in from a small prompt (after ~25 s or a few pages, never on checkout), the footer switch, or their order page. `public/sw.js` shows the notifications.
+- Subscriptions live in the **Subscribers** sheet; broadcasts are logged in **PushLog**.
+- `api/push.js` (Vercel function) signs and sends with Web Push / VAPID. Admin → **Push** broadcasts; changing an order to confirmed / shipped / delivered / cancelled pushes to that customer automatically.
+- Setup: Vercel → Settings → Environment Variables → add `VAPID_PRIVATE_KEY` (Production), optionally `VAPID_SUBJECT` (`mailto:you@…`), then redeploy. The public key is in `src/config.ts`.
+- iPhone: works only after the customer adds the site to their Home Screen (iOS 16.4+).
+
 ## Brand tokens (`tailwind.config.js`)
 Official palette: Fahmy `#1A1A1A` · Ramly `#E8E1D6` (page background) · Toby `#A67B5B` (buttons, accents) · Zeyti `#6B705C` · Ramady `#B7B0A6` (borders, secondary text on dark).
 Derived shades for accessible small text and surfaces: `topy-dark` `#7D5A40`, `topy-deep` `#9A7253`, `zeyti-dark` `#575B4A`, `stone` `#66615A`, `paper` `#F3EEE6`, `ramly` `#DDD5C8`.

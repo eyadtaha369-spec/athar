@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { useStore } from "../lib/store";
 import type { Order } from "../lib/types";
+import { PushToggle } from "../components/Push";
 import { DELIVERY_ETA, STATUS_META, cx, egp, fmtDate } from "../lib/utils";
 
 const FLOW = ["pending", "confirmed", "shipped", "delivered"] as const;
@@ -65,6 +66,12 @@ export function OrderDone() {
         <div className="rounded-[24px] bg-paper border border-ramady/50 p-6">
           <h2 className="font-semibold mb-5">Order status</h2>
           <StatusTimeline o={o} />
+          {o.status !== "delivered" && o.status !== "cancelled" && (
+            <div className="mt-6 pt-5 border-t border-ramady/50">
+              <p className="text-sm text-stone mb-2">Get a notification when your order is confirmed, shipped and delivered.</p>
+              <PushToggle link={{ orders: [o.number], phones: [o.customer.phone] }} label="Order updates" />
+            </div>
+          )}
         </div>
         <div className="rounded-[24px] bg-paper border border-ramady/50 p-6">
           <h2 className="font-semibold mb-3">What you ordered</h2>

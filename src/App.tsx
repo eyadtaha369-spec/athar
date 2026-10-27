@@ -10,6 +10,7 @@ import Overview from "./admin/Overview";
 import Orders from "./admin/Orders";
 import Products from "./admin/Products";
 import { Settings, Team } from "./admin/TeamSettings";
+import PushCenter from "./admin/Push";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Route index element={<Overview />} />
         <Route path="orders" element={<Orders />} />
         <Route path="products" element={<Products />} />
+        <Route path="push" element={<PushCenter />} />
         <Route path="team" element={<Team />} />
         <Route path="settings" element={<Settings />} />
       </Route>

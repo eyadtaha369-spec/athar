@@ -17,6 +17,19 @@ import { CATEGORY_LABEL, sha256, uid } from "./utils";
 const liveCategory = (p: Product) => p.category in CATEGORY_LABEL;
 import { fromPrice, normalizeProduct } from "./pricing";
 import { ApiError, REMOTE, call } from "./api";
+import { showLocalNotification } from "./push";
+
+export type PushResult = { targets: number; sent: number; failed: number; removed: number; skipped?: string };
+export type PushLogEntry = { at: string; by: string; title: string; body: string; url: string; audience: string; sent: number; failed: number };
+type PushRequest = { kind: "broadcast"; payload: { title: string; body: string; url?: string } } | { kind: "order"; order: { number: string; phone: string; status: OrderStatus; codDue: number } };
+
+const LOCAL_PUSH_LOG = "athar:push-log";
+const ORDER_PUSH: Partial<Record<OrderStatus, (n: string, cod: number) => { title: string; body: string }>> = {
+  confirmed: (n) => ({ title: `Order ${n} confirmed`, body: "تم تأكيد طلبك. Your deposit is verified and we're preparing your order now." }),
+  shipped: (n, cod) => ({ title: `Order ${n} is on its way`, body: `طلبك اتشحن. ${cod > 0 ? `Please have ${cod} EGP in cash ready for the courier.` : "Delivery in 5 to 7 working days."}` }),
+  delivered: (n) => ({ title: `Order ${n} delivered`, body: "تم التسليم. Thank you for choosing ATHAR." }),
+  cancelled: (n) => ({ title: `Order ${n} cancelled`, body: "Your order was cancelled. Message us on WhatsApp if this looks wrong." }),
+};
 
 const KEY = "athar:db:v8";
 const CART_KEY = "athar:cart:v2";
@@ -93,6 +106,8 @@ interface Ctx {
   changePassword: (id: string, pw: string) => Promise<void>;
   markNoticesRead: () => void;
   saveSettings: (s: Settings) => void;
+  sendPush: (r: PushRequest) => Promise<PushResult>;
+  pushStats: () => Promise<{ subscribers: number; log: PushLogEntry[] }>;
   importCatalog: () => Promise<void>;
   clearSamples: () => void;
   resetAll: () => Promise<void>;
@@ -248,6 +263,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const me = useMemo(() => (REMOTE ? remoteMe : db?.admins.find((a) => a.id === meId) ?? null), [db, meId, remoteMe]);
 
+  /* ---------- push ---------- */
+  const sendPushNow = async (r: PushRequest): Promise<PushResult> => {
+    if (REMOTE) {
+      let res: Response;
+      try {
+        res = await fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, ...r }) });
+      } catch { throw new ApiError("Can't reach the push server. Check your connection.", "network"); }
+      const j = await res.json().catch(() => ({ ok: false, error: "The push server isn't responding yet. It runs on the live Vercel site." }));
+      if (!j.ok) throw new ApiError(j.error, j.code);
+      return j.data as PushResult;
+    }
+    // demo mode: the only subscriber is this browser
+    if (r.kind !== "broadcast") return { targets: 0, sent: 0, failed: 0, removed: 0 };
+    const shown = await showLocalNotification(r.payload);
+    const entry: PushLogEntry = { at: new Date().toISOString(), by: me?.name ?? "Admin", title: r.payload.title, body: r.payload.body, url: r.payload.url ?? "/", audience: "all", sent: shown ? 1 : 0, failed: 0 };
+    safeSet(LOCAL_PUSH_LOG, JSON.stringify([entry, ...readJSON<PushLogEntry[]>(LOCAL_PUSH_LOG, [])].slice(0, 15)));
+    return { targets: shown ? 1 : 0, sent: shown ? 1 : 0, failed: 0, removed: 0 };
+  };
+
   /* ---------- helpers ---------- */
   const updateOrder = (id: string, fn: (o: Order) => Order) => {
     const cur = dbRef.current?.orders.find((o) => o.id === id);
@@ -396,6 +430,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           history: [...o.history, { status: s, at: new Date().toISOString(), by: me?.name, note: note ?? autoNote }],
         };
       });
+      // let the customer know on their phone (sheets mode: via the push server; demo: on this device)
+      if (r && r.cur.status !== s && ORDER_PUSH[s]) {
+        const o = r.next;
+        const req: PushRequest = { kind: "order", order: { number: o.number, phone: o.customer.phone, status: s, codDue: o.codDue } };
+        if (REMOTE) {
+          // wait for the status change to reach the sheet first, then push
+          queue.current = queue.current.then(() => sendPushNow(req).then((res) => { if (res.sent) toast(`${o.number}: customer notified on their phone`); }).catch(() => undefined));
+        } else {
+          const m = ORDER_PUSH[s]!(o.number, o.codDue);
+          showLocalNotification({ ...m, url: `/order/${o.number}` }).catch(() => undefined);
+        }
+      }
       // cancelling returns the stock (the server does this itself in sheets mode)
       if (r && s === "cancelled" && r.cur.status !== "cancelled") {
         commit((d) => ({
@@ -450,6 +496,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveSettings: (s) => {
       commit((d) => ({ ...d, settings: s }));
       if (REMOTE) enqueue(() => call("saveSettings", { settings: s }, token));
+    },
+    sendPush: (r) => sendPushNow(r),
+    pushStats: async () => {
+      if (REMOTE) return call<{ subscribers: number; log: PushLogEntry[] }>("pushStats", {}, token);
+      let local = false;
+      try { local = !!localStorage.getItem("athar:push-local"); } catch { /* ignore */ }
+      return { subscribers: local ? 1 : 0, log: readJSON<PushLogEntry[]>(LOCAL_PUSH_LOG, []) };
     },
     importCatalog: async () => {
       if (!REMOTE) return;

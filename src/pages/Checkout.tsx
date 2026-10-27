@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ImageUp, Landmark, Smartphone, Wallet, X } from "lucide-react";
 import { linePrice, useStore } from "../lib/store";
+import { linkOrderToPush } from "../lib/push";
 import { CopyRow, FreeDeliveryBar, ProductImage } from "../components/ui";
 import { DELIVERY_ETA, GOVERNORATES, compressImage, cx, egp, shippingFee } from "../lib/utils";
 import type { PayMethod } from "../lib/types";
@@ -98,6 +99,8 @@ export default function Checkout() {
       return;
     }
     clearCart();
+    // if this device already has notifications on, link the order so status updates reach it
+    linkOrderToPush(order.number, order.customer.phone);
     nav(`/order/${order.number}`, { state: { fresh: true } });
   };
 
