@@ -165,9 +165,11 @@ function Footer() {
       <div className="absolute inset-0 lattice text-sand/[0.035] pointer-events-none" aria-hidden />
       <div className="gutter max-w-[1500px] mx-auto pt-20 pb-10 relative">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div>
+          {/* Brand stack: logo, ATHAR, tagline, then the Arabic slogan, all centred on one axis */}
+          <div className="w-fit mx-auto lg:mx-0 flex flex-col items-center text-center">
             <Lockup className="w-[260px] md:w-[300px] text-sand" />
-            <p className=" text-xl text-sand/80 mt-6" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
+            <span aria-hidden className="block w-10 h-px bg-ramady/40 mt-6" />
+            <p className="text-xl text-sand/80 mt-4 text-center" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
           </div>
           <div>
             <h4 className="text-sand/40 text-xs uppercase tracking-[0.2em] mb-4">Shop</h4>
@@ -194,7 +196,7 @@ function Footer() {
         </div>
         <Wordmark className="w-full text-sand/[0.06] mt-16 mb-8" />
         <div className="flex flex-wrap justify-between items-center gap-4 text-sm text-sand/40 pt-6 border-t border-sand/10">
-          <span className="flex items-center gap-3"><IconMark className="h-5 text-ramady" /> © {new Date().getFullYear()} ATHAR. Made in Egypt.</span>
+          <span>© {new Date().getFullYear()} ATHAR. Made in Egypt.</span>
           <span>Prices in Egyptian pounds (EGP)</span>
         </div>
       </div>
