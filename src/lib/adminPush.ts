@@ -35,6 +35,7 @@ export async function checkAdminPushSetup(token: string | null, deviceOn: boolea
     const r = await fetch("/api/admin-alert", { method: "GET" });
     const j = await r.json();
     out.push({ label: "VAPID_PRIVATE_KEY is set in Vercel", ok: !!j.vapid, fix: "Vercel → Settings → Environment Variables → add VAPID_PRIVATE_KEY, then Redeploy." });
+    if (j.vapid && j.vapidValid === false) out.push({ label: "VAPID_PRIVATE_KEY is valid", ok: false, fix: "The value looks wrong. Edit it in Vercel, paste the private key again with no quotes or spaces, then Redeploy." });
     out.push({ label: "ADMIN_PUSH_SECRET is set in Vercel", ok: !!j.secret, fix: "Add ADMIN_PUSH_SECRET (same value as PUSH_SECRET in Apps Script), then Redeploy." });
   } catch {
     out.push({ label: "Vercel push function is live", ok: false, fix: "The site doesn't have /api/admin-alert yet. Check that the latest deployment finished in Vercel." });

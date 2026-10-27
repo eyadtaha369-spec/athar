@@ -39,11 +39,15 @@ const ORDER_COPY = {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Use POST." });
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const privateKey = String(process.env.VAPID_PRIVATE_KEY || "").trim().replace(/^["']|["']$/g, "").trim();
   if (!privateKey) {
     return res.status(503).json({ ok: false, code: "not-configured", error: "Push isn't switched on yet. Add VAPID_PRIVATE_KEY in Vercel → Settings → Environment Variables, then redeploy." });
   }
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:owner@athar.eg", process.env.VAPID_PUBLIC_KEY || DEFAULT_PUBLIC, privateKey);
+  try {
+    webpush.setVapidDetails(String(process.env.VAPID_SUBJECT || "").trim() || "mailto:owner@athar.eg", String(process.env.VAPID_PUBLIC_KEY || "").trim() || DEFAULT_PUBLIC, privateKey);
+  } catch (e) {
+    return res.status(500).json({ ok: false, code: "bad-key", error: "VAPID_PRIVATE_KEY in Vercel isn't valid: " + e.message });
+  }
 
   const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
   const { token, kind } = body;

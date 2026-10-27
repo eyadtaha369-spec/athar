@@ -440,17 +440,37 @@ function notifyAdminsPush_(message, onlyAdminId) {
   if (!c.url || !c.secret) return { configured: false, targets: 0, sent: 0 };
   const devices = adminDevices_().filter((d) => !onlyAdminId || d.adminId === onlyAdminId);
   if (!devices.length) return { configured: true, targets: 0, sent: 0 };
+  let res;
   try {
-    const res = UrlFetchApp.fetch(c.url, {
-      method: "post", contentType: "application/json", muteHttpExceptions: true,
+    res = UrlFetchApp.fetch(c.url, {
+      method: "post", contentType: "application/json", muteHttpExceptions: true, followRedirects: true,
       payload: JSON.stringify({ secret: c.secret, message: message, subscriptions: devices.map((d) => ({ id: d.id, subscription: d.subscription })) }),
     });
-    const j = JSON.parse(res.getContentText() || "{}");
-    (j.gone || []).forEach((id) => deleteRow_(SHEET.adminDevices, id)); // devices that turned alerts off or expired
-    return { configured: true, targets: devices.length, sent: j.sent || 0, error: j.ok === false ? j.error : undefined };
   } catch (e) {
-    return { configured: true, targets: devices.length, sent: 0, error: "The site's push service didn't answer." };
+    const msg = String(e && e.message || e);
+    return { configured: true, targets: devices.length, sent: 0, error: /permission/i.test(msg)
+      ? "Apps Script isn't allowed to contact the site yet. In Apps Script pick setup, click Run and approve the permission, then deploy a new version."
+      : "Couldn't reach " + c.url + ": " + msg };
   }
+  const code = res.getResponseCode();
+  const text = res.getContentText() || "";
+  let j = null;
+  try { j = JSON.parse(text); } catch (e) {}
+  if (!j) {
+    return { configured: true, targets: devices.length, sent: 0, error: (code === 401 || code === 403)
+      ? "Vercel blocked the alert (HTTP " + code + "). In Vercel → Settings → Deployment Protection, turn off Vercel Authentication, then try again."
+      : code === 404 ? "No push function at " + c.url + " (HTTP 404). Check ADMIN_URL and that the latest Vercel deployment is live."
+      : "The site answered HTTP " + code + " instead of the push service: " + text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) };
+  }
+  if (j.ok === false) {
+    return { configured: true, targets: devices.length, sent: 0, error: j.code === "auth"
+      ? "PUSH_SECRET in Apps Script and ADMIN_PUSH_SECRET in Vercel don't match. Copy it again with no spaces, then Redeploy in Vercel."
+      : j.error };
+  }
+  (j.gone || []).forEach((id) => deleteRow_(SHEET.adminDevices, id)); // devices that turned alerts off or expired
+  const sent = j.sent || 0;
+  return { configured: true, targets: devices.length, sent: sent, failed: j.failed || 0,
+    error: !sent && j.failed ? "The browsers' push services refused the alert: " + (j.reasons || []).join(" | ") : undefined };
 }
 
 function writeAdmin_(a) {
