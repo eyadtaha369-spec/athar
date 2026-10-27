@@ -121,8 +121,8 @@ const ROUTES = {
     // Push alert to admins' phones and laptops only. Customers never get this one.
     notifyAdminsPush_({
       kind: "new-order",
-      title: "New Order Received! #" + number + " - Check Dashboard",
-      body: order.customer.name + " · " + total + " EGP · " + deposit + " EGP deposit to verify",
+      title: "طلب جديد من أثر! 🛒",
+      body: "تم استلام أوردر جديد بقيمة " + String(total).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " ج.م. اضغط للمراجعة وتأكيد التحويل.",
       url: "/admin/orders?o=" + id,
       tag: "new-order-" + number,
     });
@@ -278,7 +278,7 @@ const ROUTES = {
   adminPushInfo: (b, admin) => adminPushInfo_(admin),
 
   testAdminPush: (b, admin) => notifyAdminsPush_({
-    kind: "test", title: "ATHAR order alerts are on", body: "New orders will show up here, even when the dashboard is closed.", url: "/admin/orders", tag: "athar-test",
+    kind: "test", title: "إشعارات الطلبات شغالة ✅", body: "هيوصلك إشعار مع كل أوردر جديد، حتى لو الموقع مقفول.", url: "/admin/orders", tag: "athar-test",
   }, admin.id),
 
   unsubscribePush: (b) => { if (b.endpoint) deleteRow_(SHEET.subscribers, sha256_(b.endpoint).slice(0, 24)); return true; },

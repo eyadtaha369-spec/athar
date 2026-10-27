@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BellRing, BarChart3, LogOut, Megaphone, Package, Settings as Cog, ShoppingCart, Store, Users, Volume2, VolumeX, X } from "lucide-react";
 import { useOrderAlerts } from "./alerts";
-import { AlertsHeaderButton } from "./AdminAlerts";
+import { AdminPushPrompt, AlertsHeaderButton } from "./AdminAlerts";
 import { useStore, DEFAULT_OWNER } from "../lib/store";
 import { Lockup, Logo, Toast } from "../components/ui";
 import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
@@ -207,6 +207,7 @@ export default function AdminLayout() {
         </header>
         <main className="gutter py-8 md:py-10 flex-1 max-w-[1400px] w-full">
           <AlertBanner al={al} onOpen={openOrder} />
+          <AdminPushPrompt onEnabled={al.enableDesktop} />
           <Outlet />
         </main>
       </div>

@@ -80,8 +80,8 @@ export function useOrderAlerts(onOpen: (id: string) => void) {
     if (permission === "granted" && !pushOn) {
       fresh.forEach((o) => {
         try {
-          const n = new Notification(`New Order Received! #${o.number} - Check Dashboard`, {
-            body: `${o.customer.name} · ${o.total} EGP · ${o.payment.deposit} EGP deposit to verify`,
+          const n = new Notification("طلب جديد من أثر! 🛒", {
+            body: `تم استلام أوردر جديد بقيمة ${o.total.toLocaleString("en-US")} ج.م. اضغط للمراجعة وتأكيد التحويل.`,
             tag: o.id,
           });
           n.onclick = () => { window.focus(); onOpen(o.id); n.close(); };

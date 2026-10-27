@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, Laptop, Smartphone, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { BellRing, Laptop, Share, Smartphone, Trash2 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { REMOTE } from "../lib/api";
 import { cx, fmtDate } from "../lib/utils";
@@ -9,7 +10,7 @@ import {
 
 const STATE_COPY: Partial<Record<AdminPushState, string>> = {
   blocked: "Notifications are blocked for this site. Allow them in the browser's site settings, then try again.",
-  "ios-install": "On iPhone: open the admin in Safari, tap Share → Add to Home Screen, then open it from the Home Screen and turn alerts on there.",
+  "ios-install": "On iPhone: in Safari tap Share → Add to Home Screen, open ATHAR from the Home Screen, go to Admin login at the bottom and turn alerts on there.",
   unsupported: "This browser can't receive push alerts. Try Chrome, Edge, Firefox or Safari.",
 };
 
@@ -86,7 +87,7 @@ export function AdminAlertsCard({ onEnabled }: { onEnabled?: () => void }) {
       </div>
       <p className="text-sm mt-3"><span className="text-stone">This device:</span> {busy ? "…" : on ? "On" : "Off"}</p>
       {state && STATE_COPY[state] && <p className="text-xs text-topy-dark mt-1">{STATE_COPY[state]}</p>}
-      <p className="text-xs text-stone mt-2">You'll get "New Order Received! #ATH-1234 - Check Dashboard" the moment a customer submits an order, even with the dashboard closed.</p>
+      <p className="text-xs text-stone mt-2">You'll get "طلب جديد من أثر! 🛒" with the order total the moment a customer submits an order, even with the site closed.</p>
 
       {on && (
         <button className="btn-dark h-9 px-4 mt-3 text-xs" disabled={testing}
@@ -141,5 +142,66 @@ export function AdminAlertsCard({ onEnabled }: { onEnabled?: () => void }) {
         </div>
       )}
     </section>
+  );
+}
+
+const PROMPT_KEY = "athar:admin-push-asked";
+const askedRecently = () => { try { return Date.now() - Number(localStorage.getItem(PROMPT_KEY) || 0) < 3 * 864e5; } catch { return false; } };
+const markAsked = () => { try { localStorage.setItem(PROMPT_KEY, String(Date.now())); } catch { /* ignore */ } };
+
+/**
+ * Shown once after an admin signs in on a device that doesn't get order alerts yet.
+ * "Later" hides it for 3 days; the header button stays available any time.
+ */
+export function AdminPushPrompt({ onEnabled }: { onEnabled?: () => void }) {
+  const { state, busy, enable } = useAdminPush(onEnabled);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if ((state === "off" || state === "ios-install") && !askedRecently()) {
+      const t = window.setTimeout(() => setOpen(true), 900);
+      return () => window.clearTimeout(t);
+    }
+    if (state === "on") setOpen(false);
+  }, [state]);
+  const close = () => { markAsked(); setOpen(false); };
+  const ios = state === "ios-install";
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="fixed inset-0 z-[80] grid place-items-end sm:place-items-center bg-fahmy/50 p-4"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+          <motion.div role="dialog" aria-modal="true" aria-labelledby="ap-title"
+            className="w-full max-w-[420px] rounded-2xl bg-paper p-6 shadow-[0_30px_80px_-30px_rgba(26,26,26,.7)]"
+            style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+            initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} onClick={(e) => e.stopPropagation()}>
+            <span className="w-12 h-12 rounded-xl bg-fahmy text-sand grid place-items-center"><BellRing size={22} /></span>
+            <h2 id="ap-title" className="text-xl font-semibold mt-4">Enable push notifications</h2>
+            <p className="text-lg mt-0.5 w-fit" lang="ar" dir="rtl">فعّل إشعارات الطلبات</p>
+            {ios ? (
+              <p className="text-sm text-stone mt-3">
+                On iPhone, alerts work from the Home Screen app: tap <Share size={14} className="inline -mt-0.5" /> Share → <b>Add to Home Screen</b>,
+                open ATHAR from there, tap <b>Admin login</b> at the bottom, sign in and turn alerts on.
+              </p>
+            ) : (
+              <p className="text-sm text-stone mt-3">
+                Get a notification on this {/android|iphone|ipad/i.test(navigator.userAgent) ? "phone" : "computer"} the moment a customer places an order,
+                with sound, even when the site is closed. Only admins get these.
+              </p>
+            )}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {ios ? (
+                <button className="btn-dark h-11 px-5" onClick={close}>Got it</button>
+              ) : (
+                <button className="btn-dark h-11 px-5" disabled={busy} onClick={async () => { await enable(); close(); }}>
+                  <BellRing size={16} />{busy ? "Turning on…" : "Enable notifications"}
+                </button>
+              )}
+              <button className="h-11 px-4 rounded-md text-sm text-stone hover:text-fahmy" onClick={close}>Later</button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

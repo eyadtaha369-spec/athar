@@ -78,7 +78,7 @@ export async function testAdminPush(token: string | null): Promise<{ configured:
   if (!REMOTE) {
     const r = await registerServiceWorker();
     if (r && Notification.permission === "granted") {
-      await r.showNotification("ATHAR order alerts are on", { body: "New orders will show up here.", icon: "/icon-192.png", badge: "/favicon-32.png", tag: "athar-test", data: { url: "/admin/orders" } });
+      await r.showNotification("إشعارات الطلبات شغالة ✅", { body: "هيوصلك إشعار مع كل أوردر جديد، حتى لو الموقع مقفول.", icon: "/icon-192.png", badge: "/favicon-32.png", tag: "athar-test", data: { url: "/admin/orders" } });
       return { configured: true, targets: 1, sent: 1 };
     }
     return { configured: true, targets: 0, sent: 0 };

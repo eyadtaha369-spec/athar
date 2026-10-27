@@ -20,6 +20,7 @@ self.addEventListener("push", (event) => {
       renotify: !!data.tag,
       dir: "auto",
       requireInteraction: data.kind === "new-order",
+      silent: false, // play the phone's / computer's normal notification sound
       vibrate: data.kind === "new-order" ? [120, 60, 120] : undefined,
       data: { url: data.url || "/" },
     })
