@@ -53,7 +53,7 @@ export function OrderDone() {
     <div className="pt-28 md:pt-36 pb-24 gutter max-w-[1100px] mx-auto">
       {fresh && (
         <motion.p initial={{ scale: 0.6, opacity: 0, rotate: -10 }} animate={{ scale: 1, opacity: 1, rotate: -6 }} transition={{ duration: 0.8, ease: [0.2, 0.7, 0.2, 1] }}
-          className="font-kufi text-topy-dark text-7xl md:text-8xl leading-none" lang="ar">شكراً</motion.p>
+          className="font-ar text-topy-dark text-7xl md:text-8xl leading-none" lang="ar">شكراً</motion.p>
       )}
       <h1 className="display text-5xl md:text-8xl mt-4">{fresh ? "Order placed" : `Order ${o.number}`}</h1>
       <p className="text-stone mt-3 max-w-[56ch] text-lg">

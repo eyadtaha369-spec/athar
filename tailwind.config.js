@@ -19,10 +19,9 @@ export default {
         stone: "#66615A",       // derived from ramady: secondary text on light backgrounds
       },
       fontFamily: {
-        sans: ['"IBM Plex Sans"', '"IBM Plex Sans Arabic"', "system-ui", "sans-serif"],
-        display: ['"IBM Plex Sans"', '"Reem Kufi"', '"IBM Plex Sans Arabic"', "system-ui", "sans-serif"],
-        kufi: ['"Reem Kufi"', '"IBM Plex Sans Arabic"', "sans-serif"],
-        ar: ['"IBM Plex Sans Arabic"', '"IBM Plex Sans"', "Tahoma", "sans-serif"],
+        sans: ['"Archivo Variable"', '"Archivo"', '"IBM Plex Sans Arabic"', "system-ui", "sans-serif"],
+        display: ['"Archivo Variable"', '"Archivo"', '"IBM Plex Sans Arabic"', "system-ui", "sans-serif"],
+        ar: ['"IBM Plex Sans Arabic"', '"Archivo Variable"', "Tahoma", "sans-serif"],
       },
     },
   },

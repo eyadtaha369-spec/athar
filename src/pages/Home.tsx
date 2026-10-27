@@ -11,7 +11,7 @@ const ease = [0.2, 0.7, 0.2, 1] as const;
 
 /* Small calligraphic label, the brush-script counterpart of the reference */
 const Tag = ({ children, dark = false, className = "" }: { children: React.ReactNode; dark?: boolean; className?: string }) => (
-  <p className={cx("font-kufi font-bold text-[22px] leading-none", dark ? "text-topy" : "text-topy-deep", className)} lang="ar">{children}</p>
+  <p className={cx("font-ar font-bold text-[22px] leading-none", dark ? "text-topy" : "text-topy-deep", className)} lang="ar">{children}</p>
 );
 
 /* Hairline lattice band in place of the reference's barbed wire */
@@ -42,13 +42,13 @@ function Hero({ stack }: { stack: Product[] }) {
         <div className="relative z-[2]">
           <Tag>مجموعة الخريف ٢٠٢٦</Tag>
           {/* "Made to leave أثر": the logo itself is the last word of the line */}
-          <h1 className="mt-5 display text-[17vw] sm:text-[13vw] lg:text-[7.4vw] 2xl:text-[124px]" aria-label="Made to leave أثر">
+          <h1 className="mt-5 display text-[19vw] sm:text-[15vw] lg:text-[9vw] 2xl:text-[148px]" aria-label="Made to leave أثر">
             <motion.span initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, delay: 0.1, ease }} className="block" aria-hidden>
               Made to
             </motion.span>
             <motion.span initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, delay: 0.22, ease }} className="flex items-baseline gap-[0.24em]" aria-hidden>
               <span>leave</span>
-              <Mark label="" className="h-[0.94em] text-topy-deep translate-y-[0.16em]" />
+              <Mark label="" className="h-[0.86em] text-topy-deep -rotate-3 translate-y-[0.12em]" />
             </motion.span>
           </h1>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease }}>

@@ -41,4 +41,4 @@ web app (`google-apps-script/Code.gs`). Follow **`google-apps-script/SETUP.md`**
 Official palette: Fahmy `#1A1A1A` · Ramly `#E8E1D6` (page background) · Toby `#A67B5B` (buttons, accents) · Zeyti `#6B705C` · Ramady `#B7B0A6` (borders, secondary text on dark).
 Derived shades for accessible small text and surfaces: `topy-dark` `#7D5A40`, `topy-deep` `#9A7253`, `zeyti-dark` `#575B4A`, `stone` `#66615A`, `paper` `#F3EEE6`, `ramly` `#DDD5C8`.
 
-Typography: **IBM Plex Sans** (English headings, menus, prices, UI), **IBM Plex Sans Arabic** Regular (Arabic body), **Reem Kufi** Bold (Arabic headings and brand accents). Self-hosted via Fontsource.
+Typography: **Archivo** (English: condensed italic caps for headings, regular width for body, menus and prices) and **IBM Plex Sans Arabic** (all Arabic text). Self-hosted via Fontsource.
