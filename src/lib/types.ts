@@ -1,4 +1,4 @@
-export type Category = "posters" | "sleeves" | "flags" | "cases" | "sunshades" | "umbrellas";
+export type Category = "posters" | "sleeves" | "flags" | "cases" | "sunshades";
 
 export type ArtKind =
   | "pyramids" | "karnak" | "nile" | "hieroglyph" | "sun" | "abstract"

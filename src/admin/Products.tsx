@@ -10,7 +10,7 @@ import { ProductImage } from "../components/ui";
 import { CATEGORY_LABEL, compressImage, cx, egp, uid } from "../lib/utils";
 import type { ArtKind, Category, Product } from "../lib/types";
 
-const ART_FOR: Record<Category, ArtKind> = { posters: "pyramids", sleeves: "sleeve", flags: "flag", cases: "case", sunshades: "sunshade", umbrellas: "umbrella" };
+const ART_FOR: Record<Category, ArtKind> = { posters: "pyramids", sleeves: "sleeve", flags: "flag", cases: "case", sunshades: "sunshade" };
 const PALETTES: [string, string, string][] = [
   ["#A67B5B", "#E8E1D6", "#1A1A1A"], ["#6B705C", "#E8E1D6", "#1A1A1A"], ["#1A1A1A", "#E8E1D6", "#A67B5B"], ["#E8E1D6", "#6B705C", "#A67B5B"],
 ];

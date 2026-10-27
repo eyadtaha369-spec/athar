@@ -10,7 +10,9 @@ const SORTS = { featured: "Featured", new: "Newest", low: "Price: low to high", 
 export default function Shop() {
   const { db } = useStore();
   const [sp, setSp] = useSearchParams();
-  const cat = sp.get("c") || "all";
+  const raw = sp.get("c") || "all";
+  // old or unknown category links (e.g. retired umbrellas) show the full collection
+  const cat = raw in CATEGORY_LABEL ? raw : "all";
   const [sort, setSort] = useState<keyof typeof SORTS>("featured");
   const [q, setQ] = useState("");
   const [col, setCol] = useState("all");

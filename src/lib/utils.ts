@@ -56,7 +56,6 @@ export const CATEGORY_LABEL: Record<string, { en: string; ar: string }> = {
   flags: { en: "Flags", ar: "أعلام" },
   cases: { en: "Phone Cases", ar: "جرابات موبايل" },
   sunshades: { en: "Car Sunshades", ar: "شمسية العربية" },
-  umbrellas: { en: "Umbrellas", ar: "شماسي" },
 };
 
 export const STATUS_META: Record<string, { label: string; ar: string; cls: string }> = {

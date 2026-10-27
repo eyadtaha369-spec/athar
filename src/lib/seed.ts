@@ -137,20 +137,6 @@ const BASE: LegacyProduct[] = [
     ], variantLabel: "Size",
     images: [], art: "sunshade", palette: ["#222222", "#E3DAC9", "#A85B3E"], createdAt: daysAgo(15),
   },
-  {
-    id: "p13", slug: "olive-grove-umbrella", name: "Olive Grove Umbrella", nameAr: "شمسية زيتي",
-    category: "umbrellas", price: 600, stock: 14, active: true, featured: true,
-    description: "Automatic open-and-close umbrella with a UV-blocking canopy. Olive outside, a terracotta sun pattern inside.",
-    details: ["UPF 50+ canopy for summer sun", "Windproof fibreglass ribs", "One-button auto open/close", "Wooden J-handle"],
-    variants: [], images: [], art: "umbrella", palette: ["#606859", "#A85B3E", "#E3DAC9"], createdAt: daysAgo(38),
-  },
-  {
-    id: "p14", slug: "clay-umbrella", name: "Clay Umbrella", nameAr: "شمسية طوبي",
-    category: "umbrellas", price: 600, stock: 9, active: true, featured: false,
-    description: "The same umbrella in terracotta clay with a sand interior.",
-    details: ["UPF 50+ canopy", "Windproof fibreglass ribs", "One-button auto open/close", "Wooden J-handle"],
-    variants: [], images: [], art: "umbrella", palette: ["#A85B3E", "#E3DAC9", "#222222"], createdAt: daysAgo(12),
-  },
 ];
 
 export const SEED_PRODUCTS: Product[] = [
@@ -201,7 +187,7 @@ export function seedOrders(products: Product[]): Order[] {
     [1, 3, [["p11", 0, 1], ["p4", 0, 1]], "confirmed"],
     [2, 4, [["p9", 0, 1], ["p10", 3, 1]], "shipped"],
     [3, 5, [["p1", 0, 2]], "shipped"],
-    [3, 6, [["p13", 0, 1]], "delivered"],
+    [3, 6, [["f3", 0, 1]], "delivered"],
     [4, 7, [["f6", 0, 1], ["f7", 0, 1]], "delivered"],
     [5, 8, [["p9", 2, 1]], "delivered"],
     [6, 9, [["f8", 0, 1]], "delivered"],

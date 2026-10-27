@@ -53,8 +53,4 @@ export const LIFESTYLE: Record<string, Partial<Product>> = {
     name: "Signature Car Sunshade", nameAr: "شمسية عربية أثر", slug: "signature-car-sunshade",
     description: "Charcoal windshield shade with the أثر logo facing out. Keeps the cabin cooler through an Egyptian August.",
   },
-  p13: {
-    name: "Signature Umbrella", nameAr: "شمسية أثر", slug: "signature-umbrella",
-    description: "Black automatic umbrella with a UV-blocking canopy and the أثر mark printed in sand.",
-  },
 };

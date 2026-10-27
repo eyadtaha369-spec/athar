@@ -11,11 +11,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AdminUser, CartItem, Notice, Order, OrderStatus, Product, Settings } from "./types";
 import { SEED_PRODUCTS, SEED_SETTINGS, seedOrders } from "./seed";
-import { sha256, uid } from "./utils";
+import { CATEGORY_LABEL, sha256, uid } from "./utils";
+
+// Only categories the store sells; anything else (e.g. retired umbrellas) is ignored
+const liveCategory = (p: Product) => p.category in CATEGORY_LABEL;
 import { fromPrice, normalizeProduct } from "./pricing";
 import { ApiError, REMOTE, call } from "./api";
 
-const KEY = "athar:db:v7";
+const KEY = "athar:db:v8";
 const CART_KEY = "athar:cart:v2";
 const SESSION_KEY = "athar:admin-session";
 const TOKEN_KEY = "athar:admin-token";
@@ -154,7 +157,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (REMOTE) {
         const cached = readJSON<{ products: Product[]; settings: Settings } | null>(CATALOG_KEY, null);
         const base = (c: { products: Product[]; settings: Settings }): DB => ({
-          products: c.products.map(normalizeProduct), settings: withSettings(c.settings), orders: [], admins: [], notices: [], seq: 0,
+          products: c.products.filter(liveCategory).map(normalizeProduct), settings: withSettings(c.settings), orders: [], admins: [], notices: [], seq: 0,
         });
         if (cached) { dbRef.current = base(cached); setDb(dbRef.current); }
         try {
@@ -173,7 +176,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         try {
           const d: DB = JSON.parse(raw);
-          dbRef.current = { ...d, products: d.products.map(normalizeProduct), settings: withSettings(d.settings), orders: d.orders.map(normalizeOrder) };
+          dbRef.current = { ...d, products: d.products.filter(liveCategory).map(normalizeProduct), settings: withSettings(d.settings), orders: d.orders.map(normalizeOrder) };
           setDb(dbRef.current);
           return;
         } catch { /* fall through */ }
@@ -453,7 +456,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       await call("importCatalog", { products: SEED_PRODUCTS, settings: dbRef.current?.settings ?? SEED_SETTINGS }, token);
       const c = await call<{ products: Product[]; settings: Settings }>("catalog");
       safeSet(CATALOG_KEY, JSON.stringify(c));
-      commit((d) => ({ ...d, products: c.products.map(normalizeProduct), settings: withSettings(c.settings) }));
+      commit((d) => ({ ...d, products: c.products.filter(liveCategory).map(normalizeProduct), settings: withSettings(c.settings) }));
     },
     clearSamples: () => commit((d) => ({ ...d, orders: d.orders.filter((o) => !o.sample) })),
     resetAll: async () => {

@@ -53,7 +53,7 @@ function Hero({ stack }: { stack: Product[] }) {
           </h1>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease }}>
             <p className="text-stone text-[17px] leading-relaxed mt-8 max-w-[46ch]">
-              Wall flags, posters, laptop sleeves, phone cases, sunshades and umbrellas. Designed in Egypt, printed in small runs, checked by hand before they ship.
+              Wall flags, posters, laptop sleeves, phone cases and car sunshades. Designed in Egypt, printed in small runs, checked by hand before they ship.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Link to="/shop?c=flags" className="btn-topy">Shop the flags</Link>
@@ -240,14 +240,14 @@ function Drop({ p }: { p: Product }) {
 
 function Categories({ products }: { products: Product[] }) {
   const cats = Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ k, ...v, count: products.filter((p) => p.category === k).length, sample: products.find((p) => p.category === k) }));
-  const spans = ["md:col-span-7 md:row-span-2", "md:col-span-5", "md:col-span-5", "md:col-span-4", "md:col-span-4", "md:col-span-4"];
+  const spans = ["md:col-span-6 md:row-span-2", "md:col-span-3", "md:col-span-3", "md:col-span-3", "md:col-span-3"];
   return (
     <section className="bg-sand text-fahmy">
       <div className="gutter max-w-[1500px] mx-auto py-24 md:py-32">
         <div className="flex flex-wrap items-end justify-between gap-6 mb-12">
           <div>
             <Tag>المجموعات</Tag>
-            <h2 className="display text-[14vw] sm:text-[9vw] lg:text-[96px] mt-3">Six ways to <br />carry home</h2>
+            <h2 className="display text-[14vw] sm:text-[9vw] lg:text-[96px] mt-3">Five ways to <br />carry home</h2>
           </div>
           <p className="text-stone max-w-[38ch]">The same quiet palette across everything: charcoal, sand, clay, olive and grey.</p>
         </div>
