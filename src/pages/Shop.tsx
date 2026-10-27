@@ -35,7 +35,7 @@ export default function Shop() {
   return (
     <div className="pt-28 md:pt-36 pb-24">
       <div className="gutter max-w-[1500px] mx-auto">
-        <p className="font-ar text-topy-dark text-xl" lang="ar">{heading.ar}</p>
+        <p className=" text-topy-dark text-xl" lang="ar">{heading.ar}</p>
         <h1 className="display text-6xl md:text-9xl mt-1">{heading.en}</h1>
       </div>
 

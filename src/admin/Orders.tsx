@@ -101,7 +101,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
                     {amt > 0 && amt < minDeposit && <p className="text-topy-dark">This is below the {egp(minDeposit)} minimum deposit.</p>}
                     <button className="btn-dark w-full" disabled={!(amt > 0) || amt > o.total}
                       onClick={() => { verifyPayment(o.id, true, amt); setOrderStatus(o.id, "confirmed", `Deposit of ${amt} EGP verified`); toast(`${o.number} confirmed. ${egp(Math.max(0, o.total - amt))} to collect on delivery`); }}>
-                      <Check size={16} /> Confirm order <span className="font-ar font-normal opacity-80" lang="ar">· تأكيد الطلب</span>
+                      <Check size={16} /> Confirm order <span className=" font-normal opacity-80" lang="ar">· تأكيد الطلب</span>
                     </button>
                     {amt > o.total && <p className="text-topy-dark">The amount can't be more than the order total.</p>}
                   </div>

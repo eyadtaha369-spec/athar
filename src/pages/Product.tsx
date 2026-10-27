@@ -66,7 +66,7 @@ export default function ProductPage() {
 
           {/* details */}
           <div className="lg:py-6">
-            <p className="font-ar text-lg text-topy-dark" lang="ar" dir="rtl">{p.nameAr}</p>
+            <p className=" text-lg text-topy-dark" lang="ar" dir="rtl">{p.nameAr}</p>
             <h1 className="display text-5xl md:text-7xl mt-1">{p.name}</h1>
             <div className="flex items-baseline gap-3 mt-5 tnum">
               <span className="text-2xl font-semibold">{egp(price)}</span>

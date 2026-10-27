@@ -297,7 +297,7 @@ export default function Checkout() {
             <div className="flex justify-between"><dt className="text-stone">Cash on delivery</dt><dd className="font-medium">{fee === null ? "—" : egp(cod)}</dd></div>
           </dl>
           <FreeDeliveryBar subtotal={subtotal} threshold={s.freeShippingOver} className="mt-5 rounded-lg bg-ramly/60 p-3.5" />
-          <p className="text-sm text-stone mt-3">Delivery in <b className="text-fahmy">{DELIVERY_ETA.en}</b> <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span> after we confirm your deposit.</p>
+          <p className="text-sm text-stone mt-3">Delivery in <b className="text-fahmy">{DELIVERY_ETA.en}</b> <span className="" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span> after we confirm your deposit.</p>
           {errors.stock && <p className="text-topy-dark text-sm mt-4" role="alert" data-field="stock">{errors.stock}</p>}
           {errors.submit && <p className="text-topy-dark text-sm mt-4" role="alert">{errors.submit} Nothing was charged on our side; your details are still here.</p>}
           <button type="submit" className="btn-topy w-full mt-6" disabled={submitting || uploading}>{submitting ? "Sending your order…" : "Place order"}</button>

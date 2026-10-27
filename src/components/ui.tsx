@@ -82,7 +82,7 @@ export function ProductCard({ p, dark = false, size = "md" }: { p: Product; dark
         <div className={cx("mt-3 flex items-start justify-between gap-3", dark ? "text-sand" : "text-fahmy")}>
           <div className="min-w-0">
             <h3 className={cx("font-medium leading-snug", size === "lg" ? "text-lg" : "text-[15px]")}>{p.name}</h3>
-            <p className={cx("font-ar text-sm mt-0.5", dark ? "text-sand/50" : "text-stone")} lang="ar" dir="rtl">{p.nameAr}</p>
+            <p className={cx(" text-sm mt-0.5", dark ? "text-sand/50" : "text-stone")} lang="ar" dir="rtl">{p.nameAr}</p>
           </div>
           <div className="text-right shrink-0 tnum">
             <div className="text-[15px]">{hasPriceRange(p) && <span className={dark ? "text-sand/50" : "text-stone"}>from </span>}{egp(p.price)}</div>

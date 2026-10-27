@@ -31,7 +31,7 @@ export function StatusTimeline({ o }: { o: Order }) {
               {done ? <Check size={15} /> : <span className="tnum text-xs">{i + 1}</span>}
             </span>
             <div className="pt-1">
-              <p className={cx("font-medium", !done && "text-stone")}>{STATUS_META[s].label} <span className="font-ar text-sm text-stone" lang="ar">· {STATUS_META[s].ar}</span></p>
+              <p className={cx("font-medium", !done && "text-stone")}>{STATUS_META[s].label} <span className=" text-sm text-stone" lang="ar">· {STATUS_META[s].ar}</span></p>
               <p className="text-sm text-stone">{done && h ? fmtDate(h.at, true) : FLOW_COPY[s]}</p>
             </div>
           </li>
@@ -53,11 +53,11 @@ export function OrderDone() {
     <div className="pt-28 md:pt-36 pb-24 gutter max-w-[1100px] mx-auto">
       {fresh && (
         <motion.p initial={{ scale: 0.6, opacity: 0, rotate: -10 }} animate={{ scale: 1, opacity: 1, rotate: -6 }} transition={{ duration: 0.8, ease: [0.2, 0.7, 0.2, 1] }}
-          className="font-ar text-topy-dark text-7xl md:text-8xl leading-none" lang="ar">شكراً</motion.p>
+          className=" text-topy-dark text-7xl md:text-8xl leading-none" lang="ar">شكراً</motion.p>
       )}
       <h1 className="display text-5xl md:text-8xl mt-4">{fresh ? "Order placed" : `Order ${o.number}`}</h1>
       <p className="text-stone mt-3 max-w-[56ch] text-lg">
-        {fresh ? <>Your order number is <b className="text-fahmy tnum">{o.number}</b>. We're checking your deposit receipt now and will message you on WhatsApp at <span className="tnum">{o.customer.phone}</span> once it's confirmed. Delivery takes {DELIVERY_ETA.en} <span className="font-ar" lang="ar">({DELIVERY_ETA.ar})</span> after confirmation.</>
+        {fresh ? <>Your order number is <b className="text-fahmy tnum">{o.number}</b>. We're checking your deposit receipt now and will message you on WhatsApp at <span className="tnum">{o.customer.phone}</span> once it's confirmed. Delivery takes {DELIVERY_ETA.en} <span className="" lang="ar">({DELIVERY_ETA.ar})</span> after confirmation.</>
           : <>Placed {fmtDate(o.createdAt, true)}.</>}
       </p>
 
@@ -110,7 +110,7 @@ export function Track() {
 
   return (
     <div className="pt-28 md:pt-36 pb-24 gutter max-w-[900px] mx-auto">
-      <p className="font-ar text-topy-dark text-xl" lang="ar">تتبع طلبك</p>
+      <p className=" text-topy-dark text-xl" lang="ar">تتبع طلبك</p>
       <h1 className="display text-5xl md:text-8xl">Track your order</h1>
       <p className="text-stone mt-3">Enter the order number from your confirmation and the mobile number you ordered with.</p>
       <form onSubmit={go} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 mt-8">

@@ -120,7 +120,7 @@ function CartDrawer() {
               <>
                 <div className="px-6 py-4 bg-ramly/60">
                   <FreeDeliveryBar subtotal={subtotal} threshold={settings.freeShippingOver} />
-                  <p className="text-xs text-stone mt-2">Delivery in {DELIVERY_ETA.en} <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span></p>
+                  <p className="text-xs text-stone mt-2">Delivery in {DELIVERY_ETA.en} <span className="" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span></p>
                 </div>
                 <ul className="flex-1 overflow-y-auto px-6 divide-y divide-ramady/50">
                   {rows.map(({ c, p }) => {
@@ -167,7 +167,7 @@ function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <Lockup className="w-[260px] md:w-[300px] text-sand" />
-            <p className="font-ar text-xl text-sand/80 mt-6" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
+            <p className=" text-xl text-sand/80 mt-6" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
           </div>
           <div>
             <h4 className="text-sand/40 text-xs uppercase tracking-[0.2em] mb-4">Shop</h4>

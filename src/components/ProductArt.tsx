@@ -65,8 +65,8 @@ const renders: Record<ArtKind, (a: string, b: string, c: string, id: string, tex
         ))}
         <circle cx="210" cy="300" r="9" fill={c} />
         <circle cx="200" cy="470" r="9" fill={c} />
-        <text x="226" y="306" fill={b} fontSize="15" fontFamily="Archivo, Arial, sans-serif">Cairo</text>
-        <text x="216" y="476" fill={b} fontSize="15" fontFamily="Archivo, Arial, sans-serif">Aswan</text>
+        <text x="226" y="306" fill={b} fontSize="15" fontFamily="system-ui, sans-serif">Cairo</text>
+        <text x="216" y="476" fill={b} fontSize="15" fontFamily="system-ui, sans-serif">Aswan</text>
       </g>, "#F7F4EE"),
   hieroglyph: (a, b, c) =>
     poster(
@@ -120,7 +120,7 @@ const renders: Record<ArtKind, (a: string, b: string, c: string, id: string, tex
       <circle cx="66" cy="66" r="10" fill="#B99A5B" />
       <path d="M70 90 C150 70 230 120 340 92 L340 300 C230 328 150 278 70 298 Z" fill={a} />
       <path d="M70 90 C150 70 230 120 340 92 L340 120 C230 148 150 98 70 118 Z" fill="#fff" opacity=".1" />
-      <text x="205" y="210" textAnchor="middle" fill={b} fontFamily="Archivo, Arial, sans-serif" fontWeight="800" fontSize={text && text.length > 10 ? 26 : 36} style={{ fontVariationSettings: '"wdth" 110' }}>
+      <text x="205" y="210" textAnchor="middle" fill={b} fontFamily="system-ui, sans-serif" fontWeight="800" fontSize={text && text.length > 10 ? 26 : 36} >
         {(text || "YOUR TEXT").slice(0, 18).toUpperCase()}
       </text>
     </g>

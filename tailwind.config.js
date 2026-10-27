@@ -18,11 +18,6 @@ export default {
         ramady: "#B7B0A6",      // رمادي Ramady / Soft Gray: borders, secondary text on dark
         stone: "#66615A",       // derived from ramady: secondary text on light backgrounds
       },
-      fontFamily: {
-        sans: ['"Archivo Variable"', '"Archivo"', '"IBM Plex Sans Arabic"', "system-ui", "sans-serif"],
-        display: ['"Archivo Variable"', '"Archivo"', '"IBM Plex Sans Arabic"', "system-ui", "sans-serif"],
-        ar: ['"IBM Plex Sans Arabic"', '"Archivo Variable"', "Tahoma", "sans-serif"],
-      },
     },
   },
   plugins: [],

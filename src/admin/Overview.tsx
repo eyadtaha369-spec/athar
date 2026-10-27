@@ -187,7 +187,7 @@ export default function Overview() {
       <div className="grid xl:grid-cols-[1.6fr_1fr] gap-4 mt-4">
         <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
           <h2 className="font-semibold">Best sellers</h2>
-          <p className="font-ar text-sm text-stone mb-4" lang="ar">أكتر حاجة اتباعت وعليها طلب</p>
+          <p className=" text-sm text-stone mb-4" lang="ar">أكتر حاجة اتباعت وعليها طلب</p>
           {stats.topList.length === 0 ? <p className="text-sm text-stone">No orders in this period yet.</p> : (
             <ul className="space-y-3">
               {stats.topList.map((t, i) => (

@@ -471,7 +471,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   if (!value) {
     return (
       <div className="min-h-screen grid place-items-center bg-ink">
-        <span className="font-ar text-5xl text-topy animate-pulse">أثر</span>
+        <span className=" text-5xl text-topy animate-pulse">أثر</span>
       </div>
     );
   }

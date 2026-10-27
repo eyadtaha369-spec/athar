@@ -105,7 +105,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
 
           <section className="grid sm:grid-cols-2 gap-4">
             <div><label htmlFor="pe-name" className="label">Name (English)</label><input id="pe-name" className="field" value={p.name} onChange={(e) => up("name", e.target.value)} /><E k="name" /></div>
-            <div><label htmlFor="pe-ar" className="label">Name (Arabic)</label><input id="pe-ar" dir="rtl" className="field font-ar" value={p.nameAr} onChange={(e) => up("nameAr", e.target.value)} /></div>
+            <div><label htmlFor="pe-ar" className="label">Name (Arabic)</label><input id="pe-ar" dir="rtl" className="field" value={p.nameAr} onChange={(e) => up("nameAr", e.target.value)} /></div>
             <div>
               <label htmlFor="pe-cat" className="label">Category</label>
               <select id="pe-cat" className="field" value={p.category} onChange={(e) => {
@@ -269,7 +269,7 @@ export default function Products() {
                     <td className="px-4 py-3">
                       <button className="flex items-center gap-3 text-left" onClick={() => setEditing(p)}>
                         <span className="w-11 h-14 rounded-lg overflow-hidden bg-ramly shrink-0"><ProductImage p={p} /></span>
-                        <span><span className="block font-medium hover:text-topy-dark">{p.name}</span><span className="block font-ar text-stone text-xs" lang="ar">{p.nameAr}</span></span>
+                        <span><span className="block font-medium hover:text-topy-dark">{p.name}</span><span className="block text-stone text-xs" lang="ar">{p.nameAr}</span></span>
                       </button>
                     </td>
                     <td className="px-4 py-3 text-stone">{CATEGORY_LABEL[p.category].en}</td>

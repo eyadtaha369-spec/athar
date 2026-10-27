@@ -11,7 +11,7 @@ const ease = [0.2, 0.7, 0.2, 1] as const;
 
 /* Small calligraphic label, the brush-script counterpart of the reference */
 const Tag = ({ children, dark = false, className = "" }: { children: React.ReactNode; dark?: boolean; className?: string }) => (
-  <p className={cx("font-ar font-bold text-[22px] leading-none", dark ? "text-topy" : "text-topy-deep", className)} lang="ar">{children}</p>
+  <p className={cx(" font-bold text-[22px] leading-none", dark ? "text-topy" : "text-topy-deep", className)} lang="ar">{children}</p>
 );
 
 /* Hairline lattice band in place of the reference's barbed wire */
@@ -42,13 +42,13 @@ function Hero({ stack }: { stack: Product[] }) {
         <div className="relative z-[2]">
           <Tag>مجموعة الخريف ٢٠٢٦</Tag>
           {/* "Made to leave أثر": the logo itself is the last word of the line */}
-          <h1 className="mt-5 display text-[19vw] sm:text-[15vw] lg:text-[9vw] 2xl:text-[148px]" aria-label="Made to leave أثر">
+          <h1 className="mt-5 display text-[17vw] sm:text-[13vw] lg:text-[7.4vw] 2xl:text-[124px]" aria-label="Made to leave أثر">
             <motion.span initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, delay: 0.1, ease }} className="block" aria-hidden>
               Made to
             </motion.span>
             <motion.span initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, delay: 0.22, ease }} className="flex items-baseline gap-[0.24em]" aria-hidden>
               <span>leave</span>
-              <Mark label="" className="h-[0.86em] text-topy-deep -rotate-3 translate-y-[0.12em]" />
+              <Mark label="" className="h-[0.94em] text-topy-deep translate-y-[0.16em]" />
             </motion.span>
           </h1>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease }}>
@@ -260,7 +260,7 @@ function Categories({ products }: { products: Product[] }) {
               </div>
               <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 text-fahmy flex items-end justify-between gap-3">
                 <div>
-                  <p className="font-ar text-sm text-fahmy/60" lang="ar">{c.ar}</p>
+                  <p className=" text-sm text-fahmy/60" lang="ar">{c.ar}</p>
                   <p className="display text-2xl md:text-4xl">{c.en}</p>
                 </div>
                 <span className="tnum text-sm text-fahmy/50 shrink-0">{c.count} {c.count === 1 ? "piece" : "pieces"}</span>
@@ -328,7 +328,7 @@ function FAQ() {
         <Accordion defaultOpen={0} items={[
           { q: "How do I pay?", a: <>Pay a deposit of at least {s.minDeposit} EGP by InstaPay, mobile wallet ({s.wallet.providers}) or bank transfer, and upload the receipt at checkout. You pay the rest in cash when the courier delivers your order. You can also pay the full amount upfront.</> },
           { q: "When is my order confirmed?", a: "Your order stays pending until we check your deposit receipt by hand, usually within a few hours on working days. You'll get a WhatsApp message once it's confirmed, and you can follow it on the Track order page." },
-          { q: "How much is delivery?", a: <>{s.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, {s.shippingOther} EGP to other governorates, and free for orders of {s.freeShippingOver.toLocaleString()} EGP or more. Every order is delivered in {DELIVERY_ETA.en} <span className="font-ar" lang="ar">({DELIVERY_ETA.ar})</span>.</> },
+          { q: "How much is delivery?", a: <>{s.shippingCairoAlex} EGP to Cairo, Giza and Alexandria, {s.shippingOther} EGP to other governorates, and free for orders of {s.freeShippingOver.toLocaleString()} EGP or more. Every order is delivered in {DELIVERY_ETA.en} <span className="" lang="ar">({DELIVERY_ETA.ar})</span>.</> },
           { q: "What are the flags made of?", a: "Knitted polyester printed edge to edge, with brass grommets and wall hooks in the box. They're light, don't crease much, and are safe to wash cold." },
           { q: "Can I return or exchange?", a: "Unused items can be exchanged within 14 days. Custom flags and personalised cases are made for you, so we replace those only if they arrive damaged or misprinted." },
           { q: "Can I order my own design?", a: "Yes. Choose Custom Flag, write your text at checkout, and we'll send you a proof on WhatsApp before we print. For a full image, send it to us on WhatsApp after you order." },
@@ -344,7 +344,7 @@ function Closing() {
       <div className="gutter max-w-[1500px] mx-auto py-24 md:py-32 grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end">
         <h2 className="display text-[15vw] sm:text-[10vw] lg:text-[120px]">Put a trace <br />on your wall</h2>
         <div>
-          <p className="font-ar text-2xl text-sand/85" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
+          <p className=" text-2xl text-sand/85" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
           <p className="text-ramady mt-3 max-w-[38ch]">New flags drop every few weeks. Find the one that sounds like your room.</p>
           <Link to="/shop?c=flags" className="btn-topy uppercase tracking-wide text-[13px] mt-7">Shop the flags</Link>
         </div>
