@@ -20,7 +20,7 @@ export function Team() {
   const [pwMsg, setPwMsg] = useState("");
 
   const ownPassword = (
-    <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6 mt-4">
+    <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6 mt-4">
       <h2 className="font-semibold mb-4">Change your password</h2>
       <form className="grid sm:grid-cols-[1fr_1fr_auto] gap-3" onSubmit={async (e) => {
         e.preventDefault();
@@ -32,7 +32,7 @@ export function Team() {
         <input id="pw-confirm" type="password" autoComplete="new-password" className="field" placeholder="Repeat new password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} aria-label="Repeat new password" />
         <button className="btn-dark">Change password</button>
       </form>
-      {pwMsg && <p className="text-topy text-sm mt-2" role="alert">{pwMsg}</p>}
+      {pwMsg && <p className="text-topy-dark text-sm mt-2" role="alert">{pwMsg}</p>}
     </section>
   );
 
@@ -42,34 +42,34 @@ export function Team() {
     <>
       <PageHead title="Team" sub="People who can sign in to this admin." />
       <div className="grid xl:grid-cols-[1.5fr_1fr] gap-4 items-start">
-        <section className="rounded-2xl bg-paper border border-fahmy/10 overflow-hidden">
-          <ul className="divide-y divide-fahmy/10">
+        <section className="rounded-2xl bg-paper border border-ramady/50 overflow-hidden">
+          <ul className="divide-y divide-ramady/50">
             {db.admins.map((a) => (
               <li key={a.id} className="px-5 py-4 flex flex-wrap items-center gap-4">
-                <span className="w-10 h-10 rounded-full bg-ramly grid place-items-center font-semibold text-topy">{a.name.slice(0, 1).toUpperCase()}</span>
+                <span className="w-10 h-10 rounded-full bg-ramly grid place-items-center font-semibold text-topy-dark">{a.name.slice(0, 1).toUpperCase()}</span>
                 <div className="flex-1 min-w-[180px]">
                   <p className="font-medium">{a.name}{a.id === me?.id && <span className="text-stone font-normal"> (you)</span>}</p>
                   <p className="text-sm text-stone break-all">{a.email}</p>
                 </div>
                 <div className="text-sm">
-                  <span className={cx("rounded-full px-2.5 py-1 text-xs capitalize", a.role === "owner" ? "bg-fahmy text-sand" : a.role === "admin" ? "bg-[#E3E7DC] text-zeyti" : "bg-ramly")}>{a.role}</span>
+                  <span className={cx("rounded-full px-2.5 py-1 text-xs capitalize", a.role === "owner" ? "bg-fahmy text-sand" : a.role === "admin" ? "bg-[#E3E7DC] text-zeyti-dark" : "bg-ramly")}>{a.role}</span>
                   <p className="text-xs text-stone mt-1">{a.lastLogin ? `Last in ${fmtDate(a.lastLogin)}` : "Hasn't signed in yet"}</p>
                 </div>
                 {a.id !== me?.id && (confirm === a.id ? (
                   <span className="flex gap-2 text-sm items-center">
                     Remove access?
-                    <button className="btn h-9 px-3 bg-topy text-white" onClick={async () => { const e = await removeAdmin(a.id); toast(e || `${a.name} removed`); setConfirm(null); }}>Remove</button>
+                    <button className="btn h-9 px-3 bg-topy-dark text-white" onClick={async () => { const e = await removeAdmin(a.id); toast(e || `${a.name} removed`); setConfirm(null); }}>Remove</button>
                     <button className="btn h-9 px-3" onClick={() => setConfirm(null)}>Keep</button>
                   </span>
                 ) : (
-                  <button className="text-sm text-topy hover:underline" onClick={() => setConfirm(a.id)}>Remove</button>
+                  <button className="text-sm text-topy-dark hover:underline" onClick={() => setConfirm(a.id)}>Remove</button>
                 ))}
               </li>
             ))}
           </ul>
         </section>
 
-        <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
+        <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
           <h2 className="font-semibold mb-4">Add a team member</h2>
           <form className="space-y-3" onSubmit={async (e) => {
             e.preventDefault();
@@ -85,13 +85,13 @@ export function Team() {
             <fieldset className="space-y-2 pt-1">
               <legend className="label">Role</legend>
               {(Object.keys(ROLE_COPY) as AdminRole[]).map((r) => (
-                <label key={r} className={cx("flex gap-3 items-start rounded-xl border p-3 cursor-pointer", f.role === r ? "border-fahmy bg-sand" : "border-fahmy/15")}>
-                  <input type="radio" name="role" className="mt-1 accent-[#A85B3E]" checked={f.role === r} onChange={() => setF({ ...f, role: r })} />
+                <label key={r} className={cx("flex gap-3 items-start rounded-xl border p-3 cursor-pointer", f.role === r ? "border-fahmy bg-sand" : "border-ramady/70")}>
+                  <input type="radio" name="role" className="mt-1 accent-[#A67B5B]" checked={f.role === r} onChange={() => setF({ ...f, role: r })} />
                   <span><span className="block capitalize font-medium">{r}</span><span className="block text-sm text-stone">{ROLE_COPY[r]}</span></span>
                 </label>
               ))}
             </fieldset>
-            {err && <p className="text-topy text-sm" role="alert">{err}</p>}
+            {err && <p className="text-topy-dark text-sm" role="alert">{err}</p>}
             <button className="btn-dark w-full"><UserPlus size={16} />Add team member</button>
           </form>
         </section>
@@ -116,7 +116,7 @@ export function Settings() {
     <>
       <PageHead title="Settings" sub="Payment accounts and delivery fees shown to customers at checkout." action={<button className="btn-dark" onClick={() => { saveSettings({ ...s, minDeposit: Math.max(100, Math.round(s.minDeposit) || 100) }); setS((x) => ({ ...x, minDeposit: Math.max(100, Math.round(x.minDeposit) || 100) })); toast("Settings saved"); }}>Save settings</button>} />
       <div className="grid xl:grid-cols-2 gap-4">
-        <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6 space-y-4">
+        <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6 space-y-4">
           <h2 className="font-semibold">InstaPay</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             {F({ id: "st-ip", label: "InstaPay address", value: s.instapay.handle, on: (v) => setS({ ...s, instapay: { ...s.instapay, handle: v } }) })}
@@ -136,7 +136,7 @@ export function Settings() {
           {F({ id: "st-iban", label: "IBAN", value: s.bank.iban, on: (v) => setS({ ...s, bank: { ...s.bank, iban: v } }) })}
         </section>
         <div className="space-y-4">
-          <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6 space-y-4">
+          <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6 space-y-4">
             <h2 className="font-semibold">Delivery (EGP)</h2>
             <div className="grid grid-cols-3 gap-3">
               {F({ id: "st-s1", label: "Cairo, Giza, Alex", type: "number", value: s.shippingCairoAlex, on: (v) => setS({ ...s, shippingCairoAlex: Number(v) }) })}
@@ -149,7 +149,7 @@ export function Settings() {
             </div>
             {F({ id: "st-wa", label: "Customer WhatsApp number", value: s.whatsapp, on: (v) => setS({ ...s, whatsapp: v }) })}
           </section>
-          <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
+          <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
             <h2 className="font-semibold mb-1">Store data</h2>
             {mode === "sheets" ? (
               <>
@@ -169,10 +169,10 @@ export function Settings() {
                   <button className="btn-line" disabled={!samples} onClick={() => { clearSamples(); toast("Sample orders removed"); }}>{samples ? `Remove ${samples} sample orders` : "No sample orders"}</button>
                   {confirmReset ? (
                     <span className="flex items-center gap-2 text-sm">Reset all products, orders and team?
-                      <button className="btn h-10 px-4 bg-topy text-white" onClick={async () => { await resetAll(); toast("Demo data restored"); setConfirmReset(false); }}>Reset</button>
+                      <button className="btn h-10 px-4 bg-topy-dark text-white" onClick={async () => { await resetAll(); toast("Demo data restored"); setConfirmReset(false); }}>Reset</button>
                       <button className="btn h-10 px-4" onClick={() => setConfirmReset(false)}>Keep</button>
                     </span>
-                  ) : <button className="btn text-topy" onClick={() => setConfirmReset(true)}>Reset demo data</button>}
+                  ) : <button className="btn text-topy-dark" onClick={() => setConfirmReset(true)}>Reset demo data</button>}
                 </div>
               </>
             )}

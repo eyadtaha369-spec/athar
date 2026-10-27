@@ -21,8 +21,8 @@ function Login() {
     <div className="min-h-screen bg-fahmy text-sand grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between p-12">
         <Logo light />
-        <Mark className="h-56 text-topy" />
-        <p className="text-sand/50">Store admin</p>
+        <Mark className="h-56 text-topy-dark" />
+        <p className="text-ramady">Store admin</p>
       </div>
       <div className="bg-sand text-fahmy flex items-center justify-center gutter py-16">
         <form
@@ -36,7 +36,7 @@ function Login() {
           <input id="ad-email" type="email" autoComplete="username" className="field mb-4" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <label htmlFor="ad-pw" className="label">Password</label>
           <input id="ad-pw" type="password" autoComplete="current-password" className="field" value={pw} onChange={(e) => setPw(e.target.value)} required />
-          {err && <p className="text-topy text-sm mt-3" role="alert">{err}</p>}
+          {err && <p className="text-topy-dark text-sm mt-3" role="alert">{err}</p>}
           <button className="btn-dark w-full mt-6" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
           <div className="mt-8 rounded-xl bg-ramly/70 p-4 text-sm">
             <p className="font-medium">Demo owner account</p>
@@ -69,15 +69,15 @@ function Notifications({ al }: { al: Alerts }) {
         <motion.span key={al.unread} animate={al.unread ? { rotate: [0, -18, 14, -8, 0] } : {}} transition={{ duration: 0.6 }} className="grid place-items-center">
           <Bell size={18} />
         </motion.span>
-        {al.unread > 0 && <span className="absolute top-0.5 right-0.5 min-w-[19px] h-[19px] px-1 rounded-full bg-topy text-white text-[11px] grid place-items-center tnum ring-2 ring-sand">{al.unread}</span>}
+        {al.unread > 0 && <span className="absolute top-0.5 right-0.5 min-w-[19px] h-[19px] px-1 rounded-full bg-topy-dark text-white text-[11px] grid place-items-center tnum ring-2 ring-sand">{al.unread}</span>}
       </button>
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-            className="absolute right-0 mt-2 w-[min(360px,calc(100vw-32px))] rounded-2xl bg-paper border border-fahmy/10 shadow-[0_20px_50px_-20px_rgba(34,34,34,.35)] z-50 overflow-hidden">
-            <div className="flex justify-between items-center px-4 py-3 border-b border-fahmy/10">
+            className="absolute right-0 mt-2 w-[min(360px,calc(100vw-32px))] rounded-2xl bg-paper border border-ramady/50 shadow-[0_20px_50px_-20px_rgba(34,34,34,.35)] z-50 overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-ramady/50">
               <span className="font-medium">Orders <span className="text-stone font-normal">· {al.unread} new</span></span>
-              {al.unread > 0 && <button className="text-sm text-topy" onClick={al.markAllRead}>Mark all read</button>}
+              {al.unread > 0 && <button className="text-sm text-topy-dark" onClick={al.markAllRead}>Mark all read</button>}
             </div>
             <ul className="max-h-96 overflow-y-auto">
               {recent.length === 0 && <li className="px-4 py-6 text-sm text-stone">New orders show up here the moment a customer checks out.</li>}
@@ -129,7 +129,7 @@ function AlertBanner({ al, onOpen }: { al: Alerts; onOpen: (id: string) => void 
       <AnimatePresence initial={false}>
         {al.alerts.map((o) => (
           <motion.div key={o.id} layout initial={{ opacity: 0, y: -12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            className="rounded-xl bg-topy text-white px-4 md:px-5 py-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 shadow-[0_16px_40px_-20px_rgba(168,91,62,.9)]" role="alert">
+            className="rounded-xl bg-topy-dark text-white px-4 md:px-5 py-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 shadow-[0_16px_40px_-20px_rgba(168,91,62,.9)]" role="alert">
             <BellRing size={18} className="shrink-0" />
             <p className="flex-1 min-w-[220px] text-[15px]">
               <b>New order {o.number}</b> from {o.customer.name} · {egp(o.total)} · <span className="tnum">{egp(o.payment.deposit)}</span> deposit to verify
@@ -167,27 +167,27 @@ export default function AdminLayout() {
         <nav className="flex flex-col gap-1">
           {nav.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end}
-              className={({ isActive }) => cx("flex items-center gap-3 h-11 px-3 rounded-xl text-[15px] transition-colors", isActive ? "bg-sand/10 text-sand" : "text-sand/60 hover:text-sand")}>
+              className={({ isActive }) => cx("flex items-center gap-3 h-11 px-3 rounded-xl text-[15px] transition-colors", isActive ? "bg-sand/10 text-sand" : "text-ramady hover:text-sand")}>
               <n.icon size={18} />{n.label}
-              {!!n.badge && <span className="ml-auto tnum text-xs bg-topy text-white rounded-full px-2 py-0.5">{n.badge}</span>}
+              {!!n.badge && <span className="ml-auto tnum text-xs bg-topy-dark text-white rounded-full px-2 py-0.5">{n.badge}</span>}
             </NavLink>
           ))}
         </nav>
         <div className="mt-auto space-y-1">
-          <Link to="/" className="flex items-center gap-3 h-11 px-3 rounded-xl text-sand/60 hover:text-sand"><Store size={18} />View store</Link>
-          <button onClick={logout} className="w-full flex items-center gap-3 h-11 px-3 rounded-xl text-sand/60 hover:text-sand"><LogOut size={18} />Sign out</button>
+          <Link to="/" className="flex items-center gap-3 h-11 px-3 rounded-xl text-ramady hover:text-sand"><Store size={18} />View store</Link>
+          <button onClick={logout} className="w-full flex items-center gap-3 h-11 px-3 rounded-xl text-ramady hover:text-sand"><LogOut size={18} />Sign out</button>
         </div>
       </aside>
 
       <div className="min-w-0 flex flex-col">
-        <header className="sticky z-40 bg-sand/90 backdrop-blur border-b border-fahmy/10" style={{ top: "env(safe-area-inset-top, 0px)" }}>
+        <header className="sticky z-40 bg-sand/90 backdrop-blur border-b border-ramady/50" style={{ top: "env(safe-area-inset-top, 0px)" }}>
           <div className="gutter h-16 flex items-center justify-between gap-4">
             <Link to="/admin" className="lg:hidden"><Logo /></Link>
             <p className="hidden lg:block text-stone text-sm">Signed in as <span className="text-fahmy">{me.name}</span> <span className="capitalize">({me.role})</span></p>
             <div className="flex items-center gap-1">
               <SyncStatus />
               {al.permission === "default" && (
-                <button onClick={al.enableDesktop} className="hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-full text-xs border border-fahmy/15 hover:border-fahmy" title="Get a pop-up on this computer for every new order">
+                <button onClick={al.enableDesktop} className="hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-full text-xs border border-ramady/70 hover:border-fahmy" title="Get a pop-up on this computer for every new order">
                   <BellRing size={14} />Turn on pop-ups
                 </button>
               )}
@@ -202,7 +202,7 @@ export default function AdminLayout() {
             {nav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end}
                 className={({ isActive }) => cx("shrink-0 inline-flex items-center gap-2 h-9 px-3 rounded-full text-sm", isActive ? "bg-fahmy text-sand" : "text-stone")}>
-                {n.label}{!!n.badge && <span className="tnum text-xs bg-topy text-white rounded-full px-1.5">{n.badge}</span>}
+                {n.label}{!!n.badge && <span className="tnum text-xs bg-topy-dark text-white rounded-full px-1.5">{n.badge}</span>}
               </NavLink>
             ))}
           </nav>

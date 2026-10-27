@@ -65,7 +65,7 @@ export default function Preloader() {
             <span className="display tnum text-[26vw] md:text-[180px]">{String(n).padStart(3, "0")}</span>
             <div className="text-right pb-3">
               <Mark className="h-10 md:h-14 text-topy" />
-              <p className="logotype text-[10px] md:text-xs text-sand/60 mt-3">More than just products</p>
+              <p className="logotype text-[10px] md:text-xs text-ramady mt-3">More than just products</p>
             </div>
           </div>
           <div className="absolute left-0 bottom-0 h-[3px] bg-topy" style={{ width: `${n}%` }} />

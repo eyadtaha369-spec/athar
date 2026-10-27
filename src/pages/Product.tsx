@@ -66,7 +66,7 @@ export default function ProductPage() {
 
           {/* details */}
           <div className="lg:py-6">
-            <p className="font-ar text-lg text-topy" lang="ar" dir="rtl">{p.nameAr}</p>
+            <p className="font-ar text-lg text-topy-dark" lang="ar" dir="rtl">{p.nameAr}</p>
             <h1 className="display text-5xl md:text-7xl mt-1">{p.name}</h1>
             <div className="flex items-baseline gap-3 mt-5 tnum">
               <span className="text-2xl font-semibold">{egp(price)}</span>
@@ -85,7 +85,7 @@ export default function ProductPage() {
                     const on = variant === v.id;
                     return (
                       <button key={v.id} type="button" role="radio" aria-checked={on} onClick={() => setVariant(v.id)}
-                        className={cx("text-left rounded-md border px-3.5 py-3 transition-colors", on ? "bg-fahmy text-sand border-fahmy" : "border-fahmy/20 hover:border-fahmy")}>
+                        className={cx("text-left rounded-md border px-3.5 py-3 transition-colors", on ? "bg-fahmy text-sand border-fahmy" : "border-ramady hover:border-fahmy")}>
                         <span className="block text-[15px] font-medium tnum">{v.label}</span>
                         <span className={cx("block text-sm tnum mt-0.5", on ? "text-sand/70" : "text-stone")}>{egp(v.price)}</span>
                       </button>
@@ -105,7 +105,7 @@ export default function ProductPage() {
             )}
 
             <div className="mt-8 flex flex-wrap gap-3 items-center">
-              <div className="inline-flex items-center rounded-full border border-fahmy/20 h-12">
+              <div className="inline-flex items-center rounded-full border border-ramady h-12">
                 <button className="w-11 h-full grid place-items-center" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity"><Minus size={15} /></button>
                 <span className="tnum w-8 text-center">{qty}</span>
                 <button className="w-11 h-full grid place-items-center disabled:opacity-30" disabled={qty >= p.stock} onClick={() => setQty((q) => q + 1)} aria-label="Increase quantity"><Plus size={15} /></button>
@@ -114,7 +114,7 @@ export default function ProductPage() {
                 {soldOut ? "Sold out" : `Add to bag — ${egp(price * qty)}`}
               </button>
             </div>
-            {err && <p className="text-topy text-sm mt-3" role="alert">{err}</p>}
+            {err && <p className="text-topy-dark text-sm mt-3" role="alert">{err}</p>}
             <p className="text-sm text-stone mt-3">
               {soldOut ? "Back soon. Message us to be told when it's restocked." : p.stock <= 5 ? `Only ${p.stock} left in stock.` : `In stock. Delivered in ${DELIVERY_ETA.en}.`}
             </p>

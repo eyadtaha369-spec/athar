@@ -38,5 +38,7 @@ web app (`google-apps-script/Code.gs`). Follow **`google-apps-script/SETUP.md`**
 `supabase/schema.sql` is kept as an alternative if you later move to Supabase.
 
 ## Brand tokens (`tailwind.config.js`)
-sand `#EFECE6` · ramly `#E3DAC9` · topy `#A85B3E` · fahmy `#222222` · zeyti `#606859`
-Fonts: Archivo (variable width) for English, Aref Ruqaa for the أثر mark, IBM Plex Sans Arabic for Arabic text.
+Official palette: Fahmy `#1A1A1A` · Ramly `#E8E1D6` (page background) · Toby `#A67B5B` (buttons, accents) · Zeyti `#6B705C` · Ramady `#B7B0A6` (borders, secondary text on dark).
+Derived shades for accessible small text and surfaces: `topy-dark` `#7D5A40`, `topy-deep` `#9A7253`, `zeyti-dark` `#575B4A`, `stone` `#66615A`, `paper` `#F3EEE6`, `ramly` `#DDD5C8`.
+
+Typography: **IBM Plex Sans** (English headings, menus, prices, UI), **IBM Plex Sans Arabic** Regular (Arabic body), **Reem Kufi** Bold (Arabic headings and brand accents). Self-hosted via Fontsource.

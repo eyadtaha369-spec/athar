@@ -21,7 +21,7 @@ function RevenueChart({ days }: { days: { label: string; value: number; orders: 
           return (
             <g key={t}>
               <line x1={pl} x2={W} y1={y} y2={y} stroke="#222" strokeOpacity=".08" />
-              <text x={pl - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#7A736A" className="tnum">{(nice * t).toLocaleString()}</text>
+              <text x={pl - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#66615A" className="tnum">{(nice * t).toLocaleString()}</text>
             </g>
           );
         })}
@@ -31,9 +31,9 @@ function RevenueChart({ days }: { days: { label: string; value: number; orders: 
           return (
             <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
               <rect x={pl + i * bw} y={pt} width={bw} height={H - pb - pt} fill="transparent" />
-              <rect x={x} y={H - pb - h} width={bw * 0.64} height={Math.max(h, d.value ? 2 : 0)} rx="4" fill={hover === i || (hover === null && i === days.length - 1) ? "#A85B3E" : "#606859"} opacity={hover === null || hover === i ? 1 : 0.55} />
+              <rect x={x} y={H - pb - h} width={bw * 0.64} height={Math.max(h, d.value ? 2 : 0)} rx="4" fill={hover === i || (hover === null && i === days.length - 1) ? "#A67B5B" : "#6B705C"} opacity={hover === null || hover === i ? 1 : 0.55} />
               {(i % Math.ceil(days.length / 7) === 0 || i === days.length - 1) && (
-                <text x={x + bw * 0.32} y={H - 8} textAnchor="middle" fontSize="11" fill="#7A736A">{d.label}</text>
+                <text x={x + bw * 0.32} y={H - 8} textAnchor="middle" fontSize="11" fill="#66615A">{d.label}</text>
               )}
             </g>
           );
@@ -44,8 +44,8 @@ function RevenueChart({ days }: { days: { label: string; value: number; orders: 
           return (
             <g pointerEvents="none">
               <rect x={x} y={pt} width="130" height="44" rx="8" fill="#222" />
-              <text x={x + 10} y={pt + 18} fontSize="12" fill="#EFECE6" className="tnum">{d.value.toLocaleString()} EGP</text>
-              <text x={x + 10} y={pt + 34} fontSize="11" fill="#EFECE6" opacity=".6">{d.label}, {d.orders} {d.orders === 1 ? "order" : "orders"}</text>
+              <text x={x + 10} y={pt + 18} fontSize="12" fill="#E8E1D6" className="tnum">{d.value.toLocaleString()} EGP</text>
+              <text x={x + 10} y={pt + 34} fontSize="11" fill="#E8E1D6" opacity=".6">{d.label}, {d.orders} {d.orders === 1 ? "order" : "orders"}</text>
             </g>
           );
         })()}
@@ -110,7 +110,7 @@ export default function Overview() {
         title="Overview"
         sub={hasSamples ? "Includes sample orders. Clear them from Settings when you go live." : "Sales and orders at a glance."}
         action={
-          <div className="inline-flex rounded-full border border-fahmy/15 p-1 bg-paper">
+          <div className="inline-flex rounded-full border border-ramady/70 p-1 bg-paper">
             {[7, 14, 30].map((r) => (
               <button key={r} onClick={() => setRange(r)} className={cx("h-9 px-4 rounded-full text-sm tnum", range === r ? "bg-fahmy text-sand" : "text-stone hover:text-fahmy")}>{r} days</button>
             ))}
@@ -131,7 +131,7 @@ export default function Overview() {
         </div>
       )}
       {stats.pending.length > 0 && (
-        <Link to="/admin/orders?s=pending" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-topy text-white px-5 py-4 mb-6 hover:bg-topy-dark">
+        <Link to="/admin/orders?s=pending" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-topy-dark text-white px-5 py-4 mb-6 hover:bg-topy-dark">
           <span><b className="tnum">{stats.pending.length}</b> {stats.pending.length === 1 ? "order is" : "orders are"} waiting for deposit verification ({egp(stats.pendingValue)} in deposits)</span>
           <span className="text-sm underline underline-offset-4">Review deposit receipts</span>
         </Link>
@@ -145,7 +145,7 @@ export default function Overview() {
           { l: "Awaiting verification", v: stats.pending.length.toString(), s: egp(stats.pendingValue) + " in deposits to check" },
           { l: "Cash to collect", v: egp(stats.codOpen), s: `On ${stats.codOrders} confirmed or shipped ${stats.codOrders === 1 ? "order" : "orders"}` },
         ].map((k, i) => (
-          <div key={k.l} className={cx("rounded-2xl p-5", i === 0 ? "bg-fahmy text-sand" : "bg-paper border border-fahmy/10")}>
+          <div key={k.l} className={cx("rounded-2xl p-5", i === 0 ? "bg-fahmy text-sand" : "bg-paper border border-ramady/50")}>
             <p className={cx("text-sm", i === 0 ? "text-sand/60" : "text-stone")}>{k.l}</p>
             <p className="display tnum text-2xl md:text-3xl mt-2">{k.v}</p>
             <p className={cx("text-xs mt-1.5", k.good === true ? "text-[#9fb08f]" : k.good === false ? "text-[#e3a58c]" : i === 0 ? "text-sand/50" : "text-stone")}>{k.s}</p>
@@ -154,7 +154,7 @@ export default function Overview() {
       </div>
 
       <div className="grid xl:grid-cols-[1.6fr_1fr] gap-4 mt-4">
-        <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6 min-w-0">
+        <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6 min-w-0">
           <div className="flex justify-between items-baseline mb-4">
             <h2 className="font-semibold">Revenue per day</h2>
             <span className="text-sm text-stone">EGP, paid orders</span>
@@ -162,17 +162,17 @@ export default function Overview() {
           <RevenueChart days={stats.days} />
         </section>
 
-        <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
+        <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
           <h2 className="font-semibold mb-4">Sales by category</h2>
           {stats.byCat.length === 0 ? <p className="text-sm text-stone">No paid orders in this period yet.</p> : (
             <>
               <div className="flex h-3 rounded-full overflow-hidden mb-5">
-                {stats.byCat.map(([c, v], i) => <div key={c} style={{ width: `${(v / catTotal) * 100}%`, background: ["#A85B3E", "#606859", "#222222", "#C9A77C", "#8C9483", "#B9B0A2"][i % 6] }} />)}
+                {stats.byCat.map(([c, v], i) => <div key={c} style={{ width: `${(v / catTotal) * 100}%`, background: ["#A67B5B", "#6B705C", "#1A1A1A", "#C9A77C", "#8C9483", "#B9B0A2"][i % 6] }} />)}
               </div>
               <ul className="space-y-2.5">
                 {stats.byCat.map(([c, v], i) => (
                   <li key={c} className="flex items-center gap-3 text-sm">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: ["#A85B3E", "#606859", "#222222", "#C9A77C", "#8C9483", "#B9B0A2"][i % 6] }} />
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: ["#A67B5B", "#6B705C", "#1A1A1A", "#C9A77C", "#8C9483", "#B9B0A2"][i % 6] }} />
                     <span className="flex-1">{CATEGORY_LABEL[c]?.en ?? c}</span>
                     <span className="tnum text-stone">{Math.round((v / catTotal) * 100)}%</span>
                     <span className="tnum w-24 text-right">{egp(v)}</span>
@@ -185,7 +185,7 @@ export default function Overview() {
       </div>
 
       <div className="grid xl:grid-cols-[1.6fr_1fr] gap-4 mt-4">
-        <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
+        <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
           <h2 className="font-semibold">Best sellers</h2>
           <p className="font-ar text-sm text-stone mb-4" lang="ar">أكتر حاجة اتباعت وعليها طلب</p>
           {stats.topList.length === 0 ? <p className="text-sm text-stone">No orders in this period yet.</p> : (
@@ -208,7 +208,7 @@ export default function Overview() {
         </section>
 
         <div className="space-y-4">
-          <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
+          <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
             <h2 className="font-semibold mb-4">Orders by status</h2>
             <div className="grid grid-cols-5 gap-2">
               {stats.statusCount.map(({ s, n }) => (
@@ -219,14 +219,14 @@ export default function Overview() {
               ))}
             </div>
           </section>
-          <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6">
+          <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6">
             <h2 className="font-semibold mb-3">Low stock</h2>
             {lowStock.length === 0 ? <p className="text-sm text-stone">Everything has more than 5 in stock.</p> : (
-              <ul className="divide-y divide-fahmy/10 text-sm">
+              <ul className="divide-y divide-ramady/50 text-sm">
                 {lowStock.map((p) => (
                   <li key={p.id} className="py-2.5 flex justify-between gap-3">
-                    <Link to={`/admin/products?edit=${p.id}`} className="hover:text-topy truncate">{p.name}</Link>
-                    <span className={cx("tnum shrink-0", p.stock === 0 ? "text-topy font-medium" : "text-stone")}>{p.stock === 0 ? "Sold out" : `${p.stock} left`}</span>
+                    <Link to={`/admin/products?edit=${p.id}`} className="hover:text-topy-dark truncate">{p.name}</Link>
+                    <span className={cx("tnum shrink-0", p.stock === 0 ? "text-topy-dark font-medium" : "text-stone")}>{p.stock === 0 ? "Sold out" : `${p.stock} left`}</span>
                   </li>
                 ))}
               </ul>
@@ -235,17 +235,17 @@ export default function Overview() {
         </div>
       </div>
 
-      <section className="rounded-2xl bg-paper border border-fahmy/10 p-5 md:p-6 mt-4">
+      <section className="rounded-2xl bg-paper border border-ramady/50 p-5 md:p-6 mt-4">
         <div className="flex justify-between items-center mb-3">
           <h2 className="font-semibold">Latest orders</h2>
-          <Link to="/admin/orders" className="text-sm text-topy">All orders</Link>
+          <Link to="/admin/orders" className="text-sm text-topy-dark">All orders</Link>
         </div>
         <div className="overflow-x-auto -mx-2">
           <table className="w-full text-sm min-w-[560px]">
-            <tbody className="divide-y divide-fahmy/10">
+            <tbody className="divide-y divide-ramady/50">
               {db.orders.slice(0, 6).map((o) => (
                 <tr key={o.id} className="hover:bg-ramly/40">
-                  <td className="py-3 px-2"><Link to={`/admin/orders?o=${o.id}`} className="font-medium tnum hover:text-topy">{o.number}</Link></td>
+                  <td className="py-3 px-2"><Link to={`/admin/orders?o=${o.id}`} className="font-medium tnum hover:text-topy-dark">{o.number}</Link></td>
                   <td className="py-3 px-2">{o.customer.name}</td>
                   <td className="py-3 px-2 text-stone">{fmtDate(o.createdAt, true)}</td>
                   <td className="py-3 px-2"><span className={cx("rounded-full px-2.5 py-1 text-xs", STATUS_META[o.status].cls)}>{STATUS_META[o.status].label}</span></td>

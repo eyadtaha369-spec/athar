@@ -19,8 +19,8 @@ export function IconMark({ className = "" }: { className?: string }) {
 export function Logo({ light = false, className = "" }: { light?: boolean; className?: string }) {
   return (
     <span className={cx("inline-flex items-center gap-3 select-none", light ? "text-sand" : "text-fahmy", className)}>
-      <Mark className="h-7 md:h-8" label="ATHAR أثر" />
-      <span className="logotype text-[13px] leading-none hidden sm:inline">Athar</span>
+      <Mark className="h-8 md:h-9 shrink-0" label="ATHAR أثر" />
+      <span className="logotype text-[12.5px] leading-none hidden sm:inline translate-y-[2px]">Athar</span>
     </span>
   );
 }
@@ -32,7 +32,7 @@ export function Logo({ light = false, className = "" }: { light?: boolean; class
 export function ImagePlaceholder({ title, label, tone = "sand", className = "" }: { title?: string; label?: string; tone?: "sand" | "dark"; className?: string }) {
   return (
     <div
-      className={cx("relative w-full h-full overflow-hidden flex flex-col items-center justify-center text-center", tone === "dark" ? "bg-[#26241F] text-sand/80" : "bg-ramly text-fahmy/75", className)}
+      className={cx("relative w-full h-full overflow-hidden flex flex-col items-center justify-center text-center", tone === "dark" ? "bg-[#242322] text-sand/80" : "bg-ramly text-fahmy/75", className)}
       style={{ containerType: "inline-size" }}
       role="img"
       aria-label={title ? `${title}, photo coming soon` : "Photo coming soon"}
@@ -66,7 +66,7 @@ export function ProductCard({ p, dark = false, size = "md" }: { p: Product; dark
             <ProductImage p={p} />
           </div>
           {soldOut && <span className="absolute left-3 top-3 rounded-full bg-fahmy text-sand text-xs px-3 py-1">Sold out</span>}
-          {!soldOut && p.compareAt && <span className="absolute left-3 top-3 rounded-full bg-topy text-white text-xs px-3 py-1">Sale</span>}
+          {!soldOut && p.compareAt && <span className="absolute left-3 top-3 rounded-full bg-topy-dark text-white text-xs px-3 py-1">Sale</span>}
         </div>
         <div className={cx("mt-3 flex items-start justify-between gap-3", dark ? "text-sand" : "text-fahmy")}>
           <div className="min-w-0">
@@ -95,18 +95,18 @@ export function ProductCard({ p, dark = false, size = "md" }: { p: Product; dark
 export function Accordion({ items, dark = false, defaultOpen = -1 }: { items: { q: string; a: React.ReactNode }[]; dark?: boolean; defaultOpen?: number }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={cx("border-t", dark ? "border-sand/15" : "border-fahmy/15")}>
+    <div className={cx("border-t", dark ? "border-sand/15" : "border-ramady/70")}>
       {items.map((it, i) => {
         const isOpen = open === i;
         return (
-          <div key={i} className={cx("border-b", dark ? "border-sand/15" : "border-fahmy/15")}>
+          <div key={i} className={cx("border-b", dark ? "border-sand/15" : "border-ramady/70")}>
             <button
               className="w-full flex items-center justify-between gap-6 py-5 text-left"
               aria-expanded={isOpen}
               onClick={() => setOpen(isOpen ? -1 : i)}
             >
               <span className="text-[17px] md:text-lg font-medium">{it.q}</span>
-              <motion.span animate={{ rotate: isOpen ? 45 : 0 }} transition={{ duration: 0.3 }} className={cx("grid place-items-center w-9 h-9 rounded-full shrink-0 border", dark ? "border-sand/25" : "border-fahmy/20")}>
+              <motion.span animate={{ rotate: isOpen ? 45 : 0 }} transition={{ duration: 0.3 }} className={cx("grid place-items-center w-9 h-9 rounded-full shrink-0 border", dark ? "border-sand/25" : "border-ramady")}>
                 <Plus size={16} />
               </motion.span>
             </button>
@@ -178,7 +178,7 @@ export function CopyRow({ label, value }: { label: string; value: string }) {
         <div className="text-xs text-stone">{label}</div>
         <div className="font-medium tnum select-all break-all">{value}</div>
       </div>
-      <button type="button" onClick={copy} className="shrink-0 text-sm rounded-full border border-fahmy/20 px-3 h-8 hover:border-fahmy">
+      <button type="button" onClick={copy} className="shrink-0 text-sm rounded-full border border-ramady px-3 h-8 hover:border-fahmy">
         {done ? "Copied" : "Copy"}
       </button>
     </div>

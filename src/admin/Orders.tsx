@@ -58,7 +58,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
         initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 34, stiffness: 320 }}
         className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-[640px] bg-sand overflow-y-auto"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div className="sticky top-0 bg-sand/95 backdrop-blur z-10 px-5 md:px-7 h-16 flex items-center justify-between border-b border-fahmy/10">
+        <div className="sticky top-0 bg-sand/95 backdrop-blur z-10 px-5 md:px-7 h-16 flex items-center justify-between border-b border-ramady/50">
           <div className="flex items-center gap-3"><span className="display text-xl tnum">{o.number}</span><Badge s={o.status} /></div>
           <button onClick={onClose} className="w-10 h-10 grid place-items-center rounded-full hover:bg-ramly" aria-label="Close"><X size={18} /></button>
         </div>
@@ -67,7 +67,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
           {o.sample && <p className="text-xs rounded-lg bg-ramly px-3 py-2 text-stone">Sample order for demonstration.</p>}
 
           {/* Deposit verification — the main job on this screen */}
-          <section className="rounded-2xl bg-paper border border-fahmy/10 p-5">
+          <section className="rounded-2xl bg-paper border border-ramady/50 p-5">
             <div className="flex flex-wrap justify-between items-start gap-4">
               <div>
                 <h3 className="font-semibold">Deposit</h3>
@@ -76,11 +76,11 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
               <div className="grid grid-cols-3 gap-4 text-right tnum">
                 <div><p className="text-xs text-stone">Order total</p><p className="font-semibold">{egp(o.total)}</p></div>
                 <div><p className="text-xs text-stone">{o.paymentVerified ? "Deposit verified" : "Deposit claimed"}</p><p className="display text-2xl">{egp(depositOf(o))}</p></div>
-                <div><p className="text-xs text-stone">Cash on delivery</p><p className="display text-2xl text-topy">{egp(o.codDue)}</p></div>
+                <div><p className="text-xs text-stone">Cash on delivery</p><p className="display text-2xl text-topy-dark">{egp(o.codDue)}</p></div>
               </div>
             </div>
             <div className="grid sm:grid-cols-[180px_1fr] gap-5 mt-5">
-              <button onClick={() => setZoom(true)} className="group relative rounded-xl overflow-hidden bg-ramly aspect-[9/14] border border-fahmy/10" aria-label="Open deposit receipt full size">
+              <button onClick={() => setZoom(true)} className="group relative rounded-xl overflow-hidden bg-ramly aspect-[9/14] border border-ramady/50" aria-label="Open deposit receipt full size">
                 <ReceiptImg o={o} alt="Customer deposit receipt" className="w-full h-full object-cover object-top" />
                 <span className="absolute inset-0 bg-fahmy/0 group-hover:bg-fahmy/30 grid place-items-center text-sand opacity-0 group-hover:opacity-100 transition"><ZoomIn /></span>
                 <span className="absolute inset-x-0 bottom-0 bg-ink/70 text-sand text-[11px] py-1">Tap to enlarge</span>
@@ -91,22 +91,22 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
                   <div className="flex justify-between gap-3"><dt className="text-stone">Submitted</dt><dd>{fmtDate(o.createdAt, true)}</dd></div>
                 </dl>
                 {o.status === "pending" ? (
-                  <div className="rounded-xl border border-fahmy/15 p-3 space-y-3">
+                  <div className="rounded-xl border border-ramady/70 p-3 space-y-3">
                     <p className="text-stone leading-relaxed">Check the receipt was sent to your account on or before the order date, then enter the amount it shows.</p>
                     <div>
                       <label htmlFor="verify-amt" className="label">Amount on the receipt (EGP)</label>
                       <input id="verify-amt" type="number" min={0} className="field h-11 tnum w-40" value={amount} onChange={(e) => setAmount(e.target.value)} />
                     </div>
                     {amt > 0 && amt !== o.payment.deposit && <p className="text-[#7A5317]">The customer entered {egp(o.payment.deposit)}. Cash on delivery will be {egp(Math.max(0, o.total - amt))}.</p>}
-                    {amt > 0 && amt < minDeposit && <p className="text-topy">This is below the {egp(minDeposit)} minimum deposit.</p>}
+                    {amt > 0 && amt < minDeposit && <p className="text-topy-dark">This is below the {egp(minDeposit)} minimum deposit.</p>}
                     <button className="btn-dark w-full" disabled={!(amt > 0) || amt > o.total}
                       onClick={() => { verifyPayment(o.id, true, amt); setOrderStatus(o.id, "confirmed", `Deposit of ${amt} EGP verified`); toast(`${o.number} confirmed. ${egp(Math.max(0, o.total - amt))} to collect on delivery`); }}>
                       <Check size={16} /> Confirm order <span className="font-ar font-normal opacity-80" lang="ar">· تأكيد الطلب</span>
                     </button>
-                    {amt > o.total && <p className="text-topy">The amount can't be more than the order total.</p>}
+                    {amt > o.total && <p className="text-topy-dark">The amount can't be more than the order total.</p>}
                   </div>
                 ) : o.status !== "cancelled" && (
-                  <p className="flex items-center gap-2 text-zeyti"><Check size={16} /> Order confirmed. Deposit of {egp(depositOf(o))} verified{o.codCollected ? `, ${egp(o.codDue)} cash collected` : ", stock reserved for this customer"}.</p>
+                  <p className="flex items-center gap-2 text-zeyti-dark"><Check size={16} /> Order confirmed. Deposit of {egp(depositOf(o))} verified{o.codCollected ? `, ${egp(o.codDue)} cash collected` : ", stock reserved for this customer"}.</p>
                 )}
               </div>
             </div>
@@ -132,7 +132,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
                   <label htmlFor="cancel-note" className="label">Reason (saved in the order history)</label>
                   <input id="cancel-note" className="field" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Transfer amount didn't match" />
                   <div className="flex gap-2">
-                    <button className="btn bg-topy text-white hover:bg-topy-dark" onClick={() => { setOrderStatus(o.id, "cancelled", note || undefined); setCancelling(false); toast(`${o.number} cancelled, stock returned`); }}>Cancel order</button>
+                    <button className="btn bg-topy-dark text-white hover:bg-topy-dark" onClick={() => { setOrderStatus(o.id, "cancelled", note || undefined); setCancelling(false); toast(`${o.number} cancelled, stock returned`); }}>Cancel order</button>
                     <button className="btn-line" onClick={() => setCancelling(false)}>Keep order</button>
                   </div>
                 </div>
@@ -142,14 +142,14 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
 
           {/* Customer */}
           <section className="grid sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl bg-paper border border-fahmy/10 p-5 text-sm">
+            <div className="rounded-2xl bg-paper border border-ramady/50 p-5 text-sm">
               <h3 className="font-semibold mb-2 text-base">Customer</h3>
               <p>{o.customer.name}</p>
               <p className="tnum select-all">{o.customer.phone}</p>
               {o.customer.email && <p className="select-all break-all">{o.customer.email}</p>}
-              <a href={`https://wa.me/2${o.customer.phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noreferrer" className="inline-block mt-3 text-topy underline underline-offset-2">Message on WhatsApp</a>
+              <a href={`https://wa.me/2${o.customer.phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noreferrer" className="inline-block mt-3 text-topy-dark underline underline-offset-2">Message on WhatsApp</a>
             </div>
-            <div className="rounded-2xl bg-paper border border-fahmy/10 p-5 text-sm">
+            <div className="rounded-2xl bg-paper border border-ramady/50 p-5 text-sm">
               <h3 className="font-semibold mb-2 text-base">Deliver to</h3>
               <p className="select-all">{o.shipping.address}</p>
               <p>{o.shipping.city}, {o.shipping.governorate}</p>
@@ -158,9 +158,9 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
           </section>
 
           {/* Items */}
-          <section className="rounded-2xl bg-paper border border-fahmy/10 p-5">
+          <section className="rounded-2xl bg-paper border border-ramady/50 p-5">
             <h3 className="font-semibold mb-2">Items</h3>
-            <ul className="divide-y divide-fahmy/10 text-sm">
+            <ul className="divide-y divide-ramady/50 text-sm">
               {o.lines.map((l, i) => (
                 <li key={i} className="py-2.5 flex justify-between gap-3">
                   <div><p>{l.qty} × {l.name}</p><p className="text-stone">{[l.variant, l.custom && `Custom text: “${l.custom}”`].filter(Boolean).join(" — ")}</p></div>
@@ -168,7 +168,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
                 </li>
               ))}
             </ul>
-            <dl className="pt-3 border-t border-fahmy/10 text-sm space-y-1 tnum">
+            <dl className="pt-3 border-t border-ramady/50 text-sm space-y-1 tnum">
               <div className="flex justify-between"><dt className="text-stone">Subtotal</dt><dd>{egp(o.subtotal)}</dd></div>
               <div className="flex justify-between"><dt className="text-stone">Delivery</dt><dd>{o.shippingFee ? egp(o.shippingFee) : "Free"}</dd></div>
               <div className="flex justify-between font-semibold text-base"><dt>Total</dt><dd>{egp(o.total)}</dd></div>
@@ -245,35 +245,35 @@ export default function Orders() {
       </div>
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-fahmy/20 py-16 text-center">
+        <div className="rounded-2xl border border-dashed border-ramady py-16 text-center">
           <p className="font-medium">No orders here</p>
           <p className="text-stone text-sm mt-1">{q ? "Try another search." : "New orders appear here the moment a customer checks out."}</p>
         </div>
       ) : (
-        <div className="rounded-2xl bg-paper border border-fahmy/10 overflow-hidden">
+        <div className="rounded-2xl bg-paper border border-ramady/50 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[980px]">
-              <thead className="text-left text-stone border-b border-fahmy/10">
+              <thead className="text-left text-stone border-b border-ramady/50">
                 <tr><th className="font-normal px-4 py-3">Order</th><th className="font-normal px-4 py-3">Customer</th><th className="font-normal px-4 py-3">Items</th><th className="font-normal px-4 py-3">Receipt</th><th className="font-normal px-4 py-3">Deposit</th><th className="font-normal px-4 py-3">On delivery</th><th className="font-normal px-4 py-3">Status</th><th className="font-normal px-4 py-3 text-right">Total</th></tr>
               </thead>
-              <tbody className="divide-y divide-fahmy/10">
+              <tbody className="divide-y divide-ramady/50">
                 {list.map((o) => (
                   <tr key={o.id} onClick={() => setParam("o", o.id)} className="cursor-pointer hover:bg-ramly/40">
-                    <td className="px-4 py-3.5"><button className="font-medium tnum hover:text-topy text-left" onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }}>{o.number}</button><p className="text-xs text-stone">{fmtDate(o.createdAt, true)}</p></td>
+                    <td className="px-4 py-3.5"><button className="font-medium tnum hover:text-topy-dark text-left" onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }}>{o.number}</button><p className="text-xs text-stone">{fmtDate(o.createdAt, true)}</p></td>
                     <td className="px-4 py-3.5"><p>{o.customer.name}</p><p className="text-xs text-stone">{o.shipping.governorate}</p></td>
                     <td className="px-4 py-3.5 text-stone max-w-[220px] truncate">{o.lines.map((l) => `${l.qty}× ${l.name}`).join(", ")}</td>
                     <td className="px-4 py-2">
-                      <button onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }} className="block w-10 h-14 rounded-md overflow-hidden border border-fahmy/15 bg-ramly" aria-label={`Open ${o.number} deposit receipt`}>
+                      <button onClick={(e) => { e.stopPropagation(); setParam("o", o.id); }} className="block w-10 h-14 rounded-md overflow-hidden border border-ramady/70 bg-ramly" aria-label={`Open ${o.number} deposit receipt`}>
                         <ReceiptImg o={o} className="w-full h-full object-cover object-top" />
                       </button>
                     </td>
                     <td className="px-4 py-3.5 tnum">
                       {egp(depositOf(o))}
-                      <span className={cx("block text-xs", o.paymentVerified ? "text-zeyti" : o.status === "cancelled" ? "text-stone" : "text-[#7A5317]")}>
+                      <span className={cx("block text-xs", o.paymentVerified ? "text-zeyti-dark" : o.status === "cancelled" ? "text-stone" : "text-[#7A5317]")}>
                         {o.paymentVerified ? "Verified" : o.status === "cancelled" ? "—" : "To check"}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 tnum">{o.codDue > 0 ? egp(o.codDue) : <span className="text-stone">Paid in full</span>}{o.codCollected && o.codDue > 0 && <span className="block text-xs text-zeyti">Collected</span>}</td>
+                    <td className="px-4 py-3.5 tnum">{o.codDue > 0 ? egp(o.codDue) : <span className="text-stone">Paid in full</span>}{o.codCollected && o.codDue > 0 && <span className="block text-xs text-zeyti-dark">Collected</span>}</td>
                     <td className="px-4 py-3.5"><Badge s={o.status} /></td>
                     <td className="px-4 py-3.5 text-right tnum font-medium">{egp(o.total)}</td>
                   </tr>

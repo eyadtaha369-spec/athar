@@ -35,18 +35,18 @@ export default function Shop() {
   return (
     <div className="pt-28 md:pt-36 pb-24">
       <div className="gutter max-w-[1500px] mx-auto">
-        <p className="font-ar text-topy text-xl" lang="ar">{heading.ar}</p>
+        <p className="font-ar text-topy-dark text-xl" lang="ar">{heading.ar}</p>
         <h1 className="display text-6xl md:text-9xl mt-1">{heading.en}</h1>
       </div>
 
-      <div className="sticky z-30 mt-10 bg-sand/90 backdrop-blur-md border-y border-fahmy/10" style={{ top: "calc(env(safe-area-inset-top, 0px) + 0px)" }}>
+      <div className="sticky z-30 mt-10 bg-sand/90 backdrop-blur-md border-y border-ramady/50" style={{ top: "calc(env(safe-area-inset-top, 0px) + 0px)" }}>
         <div className="gutter max-w-[1500px] mx-auto py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 max-w-full">
             {[["all", "All"], ...Object.entries(CATEGORY_LABEL).map(([k, v]) => [k, v.en])].map(([k, l]) => (
               <button
                 key={k}
                 onClick={() => setSp(k === "all" ? {} : { c: k })}
-                className={cx("shrink-0 h-10 px-4 rounded-full text-sm border transition-colors", cat === k ? "bg-fahmy text-sand border-fahmy" : "border-fahmy/20 hover:border-fahmy")}
+                className={cx("shrink-0 h-10 px-4 rounded-full text-sm border transition-colors", cat === k ? "bg-fahmy text-sand border-fahmy" : "border-ramady hover:border-fahmy")}
               >
                 {l}
               </button>
@@ -65,7 +65,7 @@ export default function Shop() {
         {cat === "flags" && collections.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {["all", ...collections].map((c) => (
-              <button key={c} onClick={() => setCol(c)} className={cx("h-8 px-3 rounded text-[12px] uppercase tracking-wide border", col === c ? "bg-topy border-topy text-white" : "border-fahmy/20 hover:border-fahmy")}>
+              <button key={c} onClick={() => setCol(c)} className={cx("h-8 px-3 rounded text-[12px] uppercase tracking-wide border", col === c ? "bg-topy border-topy text-white" : "border-ramady hover:border-fahmy")}>
                 {c === "all" ? "All flags" : c}
               </button>
             ))}

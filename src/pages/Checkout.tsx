@@ -117,7 +117,7 @@ export default function Checkout() {
     { k: "bank", label: "Bank transfer", sub: "To our CIB account", icon: <Landmark size={18} /> },
   ];
 
-  const Err = ({ k }: { k: string }) => errors[k] ? <p className="text-topy text-sm mt-1.5" role="alert">{errors[k]}</p> : null;
+  const Err = ({ k }: { k: string }) => errors[k] ? <p className="text-topy-dark text-sm mt-1.5" role="alert">{errors[k]}</p> : null;
 
   return (
     <div className="pt-24 md:pt-32 pb-24 gutter max-w-[1300px] mx-auto">
@@ -173,7 +173,7 @@ export default function Checkout() {
           {/* Payment */}
           <section>
             <h2 className="text-xl font-semibold mb-5 flex items-center gap-3"><span className="tnum w-7 h-7 rounded-full bg-fahmy text-sand text-sm grid place-items-center">2</span>Pay your deposit</h2>
-            <div data-field="deposit" className="rounded-2xl border border-fahmy/15 bg-paper p-4 md:p-5 mb-4">
+            <div data-field="deposit" className="rounded-2xl border border-ramady/70 bg-paper p-4 md:p-5 mb-4">
               <label htmlFor="deposit" className="label">Deposit amount (EGP)</label>
               <div className="flex flex-wrap gap-2 items-center">
                 <input id="deposit" type="number" inputMode="numeric" min={minDep} max={total || undefined} step={10}
@@ -185,13 +185,13 @@ export default function Checkout() {
                   ...(fee !== null ? [{ l: "Full amount", v: total }] : []),
                 ].map((c) => (
                   <button key={c.l} type="button" onClick={() => { setDepositStr(String(c.v)); setErrors((er) => ({ ...er, deposit: "" })); }}
-                    className={cx("h-10 px-3 rounded-md border text-sm tnum", deposit === c.v ? "bg-fahmy text-sand border-fahmy" : "border-fahmy/20 hover:border-fahmy")}>
+                    className={cx("h-10 px-3 rounded-md border text-sm tnum", deposit === c.v ? "bg-fahmy text-sand border-fahmy" : "border-ramady hover:border-fahmy")}>
                     {c.l}
                   </button>
                 ))}
               </div>
               <Err k="deposit" />
-              {!errors.deposit && depositError && fee !== null && <p className="text-topy text-sm mt-1.5">{depositError}</p>}
+              {!errors.deposit && depositError && fee !== null && <p className="text-topy-dark text-sm mt-1.5">{depositError}</p>}
               <p className="text-sm text-stone mt-3">
                 {fee === null ? "Choose your governorate above to see what's left to pay on delivery."
                   : cod > 0 ? <>You'll pay <b className="text-fahmy tnum">{egp(cod)}</b> in cash to the courier when your order arrives.</>
@@ -201,9 +201,9 @@ export default function Checkout() {
             <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Payment method">
               {methods.map((m) => (
                 <button type="button" role="radio" aria-checked={method === m.k} key={m.k} onClick={() => setMethod(m.k)}
-                  className={cx("text-left rounded-2xl border p-4 transition-colors", method === m.k ? "border-fahmy bg-paper" : "border-fahmy/15 hover:border-fahmy/40")}>
+                  className={cx("text-left rounded-2xl border p-4 transition-colors", method === m.k ? "border-fahmy bg-paper" : "border-ramady/70 hover:border-fahmy/40")}>
                   <div className="flex items-center justify-between">
-                    <span className={method === m.k ? "text-topy" : "text-stone"}>{m.icon}</span>
+                    <span className={method === m.k ? "text-topy-dark" : "text-stone"}>{m.icon}</span>
                     <span className={cx("w-5 h-5 rounded-full border grid place-items-center", method === m.k ? "bg-fahmy border-fahmy text-sand" : "border-fahmy/30")}>{method === m.k && <Check size={12} />}</span>
                   </div>
                   <p className="font-medium mt-3">{m.label}</p>
@@ -247,10 +247,10 @@ export default function Checkout() {
             <div data-field="receipt">
               <input ref={fileRef} id="receipt" type="file" accept="image/*" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
               {receipt ? (
-                <div className="flex gap-4 items-center rounded-2xl border border-fahmy/15 bg-paper p-3">
+                <div className="flex gap-4 items-center rounded-2xl border border-ramady/70 bg-paper p-3">
                   <img src={receipt} alt="Your transfer receipt" className="w-20 h-28 object-cover rounded-lg bg-ramly" />
                   <div className="flex-1">
-                    <p className="font-medium flex items-center gap-2"><Check size={16} className="text-zeyti" /> Receipt attached</p>
+                    <p className="font-medium flex items-center gap-2"><Check size={16} className="text-zeyti-dark" /> Receipt attached</p>
                     <p className="text-sm text-stone">Make sure the amount ({egp(deposit)}) and date are readable.</p>
                   </div>
                   <button type="button" onClick={() => { setReceipt(""); if (fileRef.current) fileRef.current.value = ""; }} className="w-10 h-10 grid place-items-center rounded-full hover:bg-ramly" aria-label="Remove receipt"><X size={18} /></button>
@@ -260,8 +260,8 @@ export default function Checkout() {
                   onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
                   onDrop={(e) => { e.preventDefault(); setDrag(false); onFile(e.dataTransfer.files?.[0]); }}
                   className={cx("flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed px-6 py-10 cursor-pointer transition-colors",
-                    drag ? "border-topy bg-topy/5" : errors.receipt ? "border-topy/60" : "border-fahmy/20 hover:border-fahmy/50")}>
-                  <ImageUp className="text-topy mb-3" size={28} />
+                    drag ? "border-topy bg-topy/5" : errors.receipt ? "border-topy/60" : "border-ramady hover:border-fahmy/50")}>
+                  <ImageUp className="text-topy-dark mb-3" size={28} />
                   <span className="font-medium">{uploading ? "Preparing image…" : "Choose a screenshot or drop it here"}</span>
                   <span className="text-sm text-stone mt-1">JPG or PNG, up to 12 MB</span>
                 </label>
@@ -272,9 +272,9 @@ export default function Checkout() {
         </div>
 
         {/* Summary */}
-        <aside className="lg:sticky lg:top-24 rounded-[24px] bg-paper border border-fahmy/10 p-5 md:p-7">
+        <aside className="lg:sticky lg:top-24 rounded-[24px] bg-paper border border-ramady/50 p-5 md:p-7">
           <h2 className="text-lg font-semibold mb-4">Order summary</h2>
-          <ul className="divide-y divide-fahmy/10">
+          <ul className="divide-y divide-ramady/50">
             {rows.map(({ c, p }) => (
               <li key={c.key} className="py-3 flex gap-3">
                 <div className="relative w-14 h-[70px] rounded-lg overflow-hidden bg-ramly shrink-0">
@@ -289,17 +289,17 @@ export default function Checkout() {
               </li>
             ))}
           </ul>
-          <dl className="mt-4 pt-4 border-t border-fahmy/10 space-y-2 text-[15px] tnum">
+          <dl className="mt-4 pt-4 border-t border-ramady/50 space-y-2 text-[15px] tnum">
             <div className="flex justify-between"><dt className="text-stone">Subtotal</dt><dd>{egp(subtotal)}</dd></div>
-            <div className="flex justify-between"><dt className="text-stone">Delivery</dt><dd>{fee === 0 ? <span className="text-zeyti font-medium">Free</span> : fee === null ? "Choose governorate" : egp(fee)}</dd></div>
-            <div className="flex justify-between text-lg font-semibold pt-2 border-t border-fahmy/10"><dt>Total</dt><dd>{egp(total)}</dd></div>
+            <div className="flex justify-between"><dt className="text-stone">Delivery</dt><dd>{fee === 0 ? <span className="text-zeyti-dark font-medium">Free</span> : fee === null ? "Choose governorate" : egp(fee)}</dd></div>
+            <div className="flex justify-between text-lg font-semibold pt-2 border-t border-ramady/50"><dt>Total</dt><dd>{egp(total)}</dd></div>
             <div className="flex justify-between pt-2"><dt className="text-stone">Deposit now</dt><dd className="font-medium">{deposit >= minDep ? egp(Math.min(deposit, total || deposit)) : "—"}</dd></div>
             <div className="flex justify-between"><dt className="text-stone">Cash on delivery</dt><dd className="font-medium">{fee === null ? "—" : egp(cod)}</dd></div>
           </dl>
           <FreeDeliveryBar subtotal={subtotal} threshold={s.freeShippingOver} className="mt-5 rounded-lg bg-ramly/60 p-3.5" />
           <p className="text-sm text-stone mt-3">Delivery in <b className="text-fahmy">{DELIVERY_ETA.en}</b> <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span> after we confirm your deposit.</p>
-          {errors.stock && <p className="text-topy text-sm mt-4" role="alert" data-field="stock">{errors.stock}</p>}
-          {errors.submit && <p className="text-topy text-sm mt-4" role="alert">{errors.submit} Nothing was charged on our side; your details are still here.</p>}
+          {errors.stock && <p className="text-topy-dark text-sm mt-4" role="alert" data-field="stock">{errors.stock}</p>}
+          {errors.submit && <p className="text-topy-dark text-sm mt-4" role="alert">{errors.submit} Nothing was charged on our side; your details are still here.</p>}
           <button type="submit" className="btn-topy w-full mt-6" disabled={submitting || uploading}>{submitting ? "Sending your order…" : "Place order"}</button>
           <p className="text-xs text-stone mt-3 leading-relaxed">Your order is reserved as soon as you place it. It stays pending until we verify your deposit, usually within a few hours, and we confirm on WhatsApp.</p>
         </aside>

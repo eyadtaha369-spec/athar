@@ -39,7 +39,7 @@ export const FLAG_PRODUCTS: Product[] = FLAGS.map(([slug, name, nameAr, collecti
   variantLabel: "Size",
   images: [],
   art: "flag",
-  palette: ["#222222", "#E6DED1", "#A85B3E"],
+  palette: ["#1A1A1A", "#E8E1D6", "#A67B5B"],
   createdAt: ago(5 + i * 3),
 }));
 

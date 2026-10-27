@@ -12,7 +12,7 @@ import type { ArtKind, Category, Product } from "../lib/types";
 
 const ART_FOR: Record<Category, ArtKind> = { posters: "pyramids", sleeves: "sleeve", flags: "flag", cases: "case", sunshades: "sunshade", umbrellas: "umbrella" };
 const PALETTES: [string, string, string][] = [
-  ["#A85B3E", "#E3DAC9", "#222222"], ["#606859", "#E3DAC9", "#222222"], ["#222222", "#E3DAC9", "#A85B3E"], ["#E3DAC9", "#606859", "#A85B3E"],
+  ["#A67B5B", "#E8E1D6", "#1A1A1A"], ["#6B705C", "#E8E1D6", "#1A1A1A"], ["#1A1A1A", "#E8E1D6", "#A67B5B"], ["#E8E1D6", "#6B705C", "#A67B5B"],
 ];
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "product-" + uid();
 
@@ -58,7 +58,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
     onClose();
   };
 
-  const E = ({ k }: { k: string }) => err[k] ? <p className="text-topy text-sm mt-1" role="alert">{err[k]}</p> : null;
+  const E = ({ k }: { k: string }) => err[k] ? <p className="text-topy-dark text-sm mt-1" role="alert">{err[k]}</p> : null;
 
   return (
     <>
@@ -67,7 +67,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
         initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 34, stiffness: 320 }}
         className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-[720px] bg-sand flex flex-col"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div className="px-5 md:px-7 h-16 flex items-center justify-between border-b border-fahmy/10 shrink-0">
+        <div className="px-5 md:px-7 h-16 flex items-center justify-between border-b border-ramady/50 shrink-0">
           <h2 className="display text-xl">{isNew ? "New product" : "Edit product"}</h2>
           <button onClick={onClose} className="w-10 h-10 grid place-items-center rounded-full hover:bg-ramly" aria-label="Close"><X size={18} /></button>
         </div>
@@ -88,9 +88,9 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
                 </div>
               ))}
               {p.images.length < 6 && (
-                <label className="aspect-[4/5] rounded-xl border-2 border-dashed border-fahmy/20 hover:border-fahmy/50 grid place-items-center text-center cursor-pointer text-sm text-stone p-2">
+                <label className="aspect-[4/5] rounded-xl border-2 border-dashed border-ramady hover:border-fahmy/50 grid place-items-center text-center cursor-pointer text-sm text-stone p-2">
                   <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => addImages(e.target.files)} />
-                  <span><ImagePlus className="mx-auto mb-1 text-topy" size={22} />{uploading ? "Uploading…" : "Add photos"}</span>
+                  <span><ImagePlus className="mx-auto mb-1 text-topy-dark" size={22} />{uploading ? "Uploading…" : "Add photos"}</span>
                 </label>
               )}
               {p.images.length === 0 && (
@@ -124,7 +124,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
           </section>
 
           {/* Sizes and selling prices */}
-          <section className="rounded-xl border border-fahmy/15 bg-paper p-4 md:p-5">
+          <section className="rounded-xl border border-ramady/70 bg-paper p-4 md:p-5">
             <div className="flex flex-wrap items-end gap-3 mb-4">
               <div className="flex-1 min-w-[200px]">
                 <h3 className="font-semibold">Sizes and prices</h3>
@@ -156,7 +156,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn h-10 px-3 text-sm text-topy mt-2" onClick={() => up("variants", [...p.variants, { id: uid(), label: "", price: p.variants[p.variants.length - 1]?.price ?? p.price ?? 0 }])}>
+            <button type="button" className="btn h-10 px-3 text-sm text-topy-dark mt-2" onClick={() => up("variants", [...p.variants, { id: uid(), label: "", price: p.variants[p.variants.length - 1]?.price ?? p.price ?? 0 }])}>
               <Plus size={16} />Add a size
             </button>
             <E k="variants" />
@@ -176,8 +176,8 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
 
           <section className="flex flex-wrap gap-3">
             {([["active", "Visible in store"], ["featured", "Show in the vault on the homepage"]] as const).map(([k, l]) => (
-              <label key={k} className="flex items-center gap-3 rounded-xl border border-fahmy/15 bg-paper px-4 h-12 cursor-pointer">
-                <input type="checkbox" className="w-5 h-5 accent-[#A85B3E]" checked={p[k]} onChange={(e) => up(k, e.target.checked)} />{l}
+              <label key={k} className="flex items-center gap-3 rounded-xl border border-ramady/70 bg-paper px-4 h-12 cursor-pointer">
+                <input type="checkbox" className="w-5 h-5 accent-[#A67B5B]" checked={p[k]} onChange={(e) => up(k, e.target.checked)} />{l}
               </label>
             ))}
           </section>
@@ -190,22 +190,22 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
 
           <section>
             <label className="flex items-center gap-3 cursor-pointer mb-3">
-              <input type="checkbox" className="w-5 h-5 accent-[#A85B3E]" checked={p.customText !== undefined} onChange={(e) => up("customText", e.target.checked ? "Your text" : undefined)} />
+              <input type="checkbox" className="w-5 h-5 accent-[#A67B5B]" checked={p.customText !== undefined} onChange={(e) => up("customText", e.target.checked ? "Your text" : undefined)} />
               Customers add their own text (names, slogans)
             </label>
             {p.customText !== undefined && <input id="pe-custom" className="field" value={p.customText} onChange={(e) => up("customText", e.target.value)} placeholder="Label shown to customers, e.g. Text on your flag" aria-label="Custom text label" />}
           </section>
         </div>
 
-        <div className="px-5 md:px-7 py-4 border-t border-fahmy/10 flex flex-wrap gap-3 items-center shrink-0">
+        <div className="px-5 md:px-7 py-4 border-t border-ramady/50 flex flex-wrap gap-3 items-center shrink-0">
           {!isNew && (confirmDel ? (
             <span className="flex items-center gap-2 text-sm">
               Delete for good?
-              <button className="btn h-10 px-4 bg-topy text-white" onClick={() => { deleteProduct(p.id); toast(`${initial.name} deleted`); onClose(); }}>Delete</button>
+              <button className="btn h-10 px-4 bg-topy-dark text-white" onClick={() => { deleteProduct(p.id); toast(`${initial.name} deleted`); onClose(); }}>Delete</button>
               <button className="btn h-10 px-4" onClick={() => setConfirmDel(false)}>Keep</button>
             </span>
           ) : (
-            <button className="btn h-10 px-3 text-topy" onClick={() => setConfirmDel(true)}><Trash2 size={16} />Delete</button>
+            <button className="btn h-10 px-3 text-topy-dark" onClick={() => setConfirmDel(true)}><Trash2 size={16} />Delete</button>
           ))}
           <div className="ml-auto flex gap-2">
             <button className="btn-line" onClick={onClose}>Discard</button>
@@ -252,24 +252,24 @@ export default function Products() {
       </div>
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-fahmy/20 py-16 text-center">
+        <div className="rounded-2xl border border-dashed border-ramady py-16 text-center">
           <p className="font-medium">No products found</p>
           <button className="btn-dark mt-4" onClick={() => setEditing(blank())}>Add your first product</button>
         </div>
       ) : (
-        <div className="rounded-2xl bg-paper border border-fahmy/10 overflow-hidden">
+        <div className="rounded-2xl bg-paper border border-ramady/50 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[800px]">
-              <thead className="text-left text-stone border-b border-fahmy/10">
+              <thead className="text-left text-stone border-b border-ramady/50">
                 <tr><th className="font-normal px-4 py-3">Product</th><th className="font-normal px-4 py-3">Category</th><th className="font-normal px-4 py-3">Price</th><th className="font-normal px-4 py-3">Stock</th><th className="font-normal px-4 py-3">Sold</th><th className="font-normal px-4 py-3">In store</th><th className="px-4 py-3" /></tr>
               </thead>
-              <tbody className="divide-y divide-fahmy/10">
+              <tbody className="divide-y divide-ramady/50">
                 {list.map((p) => (
                   <tr key={p.id} className="hover:bg-ramly/30">
                     <td className="px-4 py-3">
                       <button className="flex items-center gap-3 text-left" onClick={() => setEditing(p)}>
                         <span className="w-11 h-14 rounded-lg overflow-hidden bg-ramly shrink-0"><ProductImage p={p} /></span>
-                        <span><span className="block font-medium hover:text-topy">{p.name}</span><span className="block font-ar text-stone text-xs" lang="ar">{p.nameAr}</span></span>
+                        <span><span className="block font-medium hover:text-topy-dark">{p.name}</span><span className="block font-ar text-stone text-xs" lang="ar">{p.nameAr}</span></span>
                       </button>
                     </td>
                     <td className="px-4 py-3 text-stone">{CATEGORY_LABEL[p.category].en}</td>
@@ -278,7 +278,7 @@ export default function Products() {
                       <input key={p.id + ":" + p.stock} type="number" min={0} defaultValue={p.stock} aria-label={`Stock for ${p.name}`}
                         onBlur={(e) => { const v = Math.max(0, Number(e.target.value) || 0); if (v !== p.stock) { saveProduct({ ...p, stock: v }); toast(`${p.name}: ${v} in stock`); } }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                        className={cx("w-20 h-9 rounded-lg border px-2 tnum bg-sand", p.stock === 0 ? "border-topy text-topy" : p.stock <= 5 ? "border-[#C9A77C]" : "border-fahmy/15")} />
+                        className={cx("w-20 h-9 rounded-lg border px-2 tnum bg-sand", p.stock === 0 ? "border-topy text-topy-dark" : p.stock <= 5 ? "border-[#C9A77C]" : "border-ramady/70")} />
                     </td>
                     <td className="px-4 py-3 tnum text-stone">{sold.get(p.id) || 0}</td>
                     <td className="px-4 py-3">
@@ -287,7 +287,7 @@ export default function Products() {
                         <span className={cx("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", p.active ? "left-[22px]" : "left-0.5")} />
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-right"><button className="text-topy hover:underline" onClick={() => setEditing(p)}>Edit</button></td>
+                    <td className="px-4 py-3 text-right"><button className="text-topy-dark hover:underline" onClick={() => setEditing(p)}>Edit</button></td>
                   </tr>
                 ))}
               </tbody>

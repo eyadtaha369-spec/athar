@@ -46,21 +46,21 @@ function Header({ dark }: { dark: boolean }) {
       className={cx(
         "fixed inset-x-0 z-50 transition-colors duration-300",
         dark ? "text-sand" : "text-fahmy",
-        solid && (dark ? "bg-ink/80 backdrop-blur-md border-b border-sand/10" : "bg-sand/85 backdrop-blur-md border-b border-fahmy/10"),
+        solid && (dark ? "bg-ink/80 backdrop-blur-md border-b border-sand/10" : "bg-sand/85 backdrop-blur-md border-b border-ramady/50"),
       )}
       style={{ top: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="gutter h-16 md:h-[72px] flex items-center justify-between gap-6 max-w-[1500px] mx-auto">
         <Link to="/" aria-label="ATHAR home"><Logo light={dark} /></Link>
         <nav className="hidden lg:flex items-center gap-8 text-[14px]">
-          {NAV.map((n) => <NavLink key={n.to} to={n.to} className="py-1 opacity-80 hover:opacity-100 hover:text-topy transition">{n.label}</NavLink>)}
+          {NAV.map((n) => <NavLink key={n.to} to={n.to} className={cx("py-1 opacity-80 hover:opacity-100 transition", dark ? "hover:text-topy" : "hover:text-topy-dark")}>{n.label}</NavLink>)}
         </nav>
         <div className="flex items-center gap-2">
           <button onClick={() => setCartOpen(true)} className={cx("h-10 pl-4 pr-1.5 rounded-md inline-flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide", dark ? "bg-sand text-ink hover:bg-white" : "bg-fahmy text-sand hover:bg-black")} aria-label={`Open bag, ${count} items`}>
             <ShoppingBag size={15} /> <span className="hidden sm:inline">Bag</span>
-            <span className="tnum min-w-7 h-7 px-1.5 rounded bg-topy text-white text-xs grid place-items-center">{count}</span>
+            <span className="tnum min-w-7 h-7 px-1.5 rounded bg-topy-dark text-white text-xs grid place-items-center">{count}</span>
           </button>
-          <button className={cx("lg:hidden grid place-items-center w-10 h-10 rounded-md border", dark ? "border-sand/25" : "border-fahmy/20")} onClick={() => setMenu((m) => !m)} aria-label="Menu" aria-expanded={menu}>
+          <button className={cx("lg:hidden grid place-items-center w-10 h-10 rounded-md border", dark ? "border-sand/25" : "border-ramady")} onClick={() => setMenu((m) => !m)} aria-label="Menu" aria-expanded={menu}>
             {menu ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
@@ -69,7 +69,7 @@ function Header({ dark }: { dark: boolean }) {
         {menu && (
           <motion.nav initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="lg:hidden overflow-hidden">
             <div className="gutter pb-6 pt-2 flex flex-col">
-              {NAV.map((n) => <Link key={n.to} to={n.to} className={cx("display text-4xl py-3 border-b", dark ? "border-sand/10" : "border-fahmy/10")}>{n.label}</Link>)}
+              {NAV.map((n) => <Link key={n.to} to={n.to} className={cx("display text-4xl py-3 border-b", dark ? "border-sand/10" : "border-ramady/50")}>{n.label}</Link>)}
             </div>
           </motion.nav>
         )}
@@ -103,7 +103,7 @@ function CartDrawer() {
             className="fixed right-0 top-0 bottom-0 z-[71] w-full max-w-[440px] bg-sand flex flex-col"
             style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingRight: "env(safe-area-inset-right, 0px)" }}
           >
-            <div className="flex items-center justify-between px-6 h-[72px] border-b border-fahmy/10">
+            <div className="flex items-center justify-between px-6 h-[72px] border-b border-ramady/50">
               <h2 className="display text-3xl">Your bag</h2>
               <button onClick={() => setCartOpen(false)} className="grid place-items-center w-10 h-10 rounded-full hover:bg-ramly" aria-label="Close bag"><X size={18} /></button>
             </div>
@@ -122,7 +122,7 @@ function CartDrawer() {
                   <FreeDeliveryBar subtotal={subtotal} threshold={settings.freeShippingOver} />
                   <p className="text-xs text-stone mt-2">Delivery in {DELIVERY_ETA.en} <span className="font-ar" lang="ar" dir="rtl">({DELIVERY_ETA.ar})</span></p>
                 </div>
-                <ul className="flex-1 overflow-y-auto px-6 divide-y divide-fahmy/10">
+                <ul className="flex-1 overflow-y-auto px-6 divide-y divide-ramady/50">
                   {rows.map(({ c, p }) => {
                     const v = p!.variants.find((x) => x.id === c.variantId);
                     return (
@@ -135,7 +135,7 @@ function CartDrawer() {
                           </div>
                           {v && <p className="text-sm text-stone">{v.label}</p>}
                           {c.custom && <p className="text-sm text-stone truncate">“{c.custom}”</p>}
-                          <div className="mt-3 inline-flex items-center rounded-full border border-fahmy/20">
+                          <div className="mt-3 inline-flex items-center rounded-full border border-ramady">
                             <button className="w-9 h-9 grid place-items-center" onClick={() => setQty(c.key, c.qty - 1)} aria-label="Decrease quantity"><Minus size={14} /></button>
                             <span className="tnum w-6 text-center text-sm">{c.qty}</span>
                             <button className="w-9 h-9 grid place-items-center disabled:opacity-30" disabled={c.qty >= p!.stock} onClick={() => setQty(c.key, c.qty + 1)} aria-label="Increase quantity"><Plus size={14} /></button>
@@ -145,7 +145,7 @@ function CartDrawer() {
                     );
                   })}
                 </ul>
-                <div className="px-6 py-5 border-t border-fahmy/10">
+                <div className="px-6 py-5 border-t border-ramady/50">
                   <div className="flex justify-between text-lg mb-1"><span>Subtotal</span><span className="tnum font-semibold">{egp(subtotal)}</span></div>
                   <p className="text-sm text-stone mb-4">Pay a deposit from {settings.minDeposit} EGP now, the rest in cash on delivery. Delivery calculated at checkout.</p>
                   <button className="btn-topy w-full" onClick={() => { setCartOpen(false); nav("/checkout"); }}>Go to checkout</button>
@@ -168,7 +168,7 @@ function Footer() {
           <div>
             <Mark className="h-24 md:h-28 text-topy" />
             <p className="logotype text-sm mt-6">Athar</p>
-            <p className="text-sand/50 text-[11px] logotype !tracking-[0.3em] mt-2">More than just products</p>
+            <p className="text-ramady text-[11px] logotype !tracking-[0.3em] mt-2">More than just products</p>
             <p className="font-ar text-xl text-sand/80 mt-6" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
           </div>
           <div>
@@ -196,7 +196,7 @@ function Footer() {
         </div>
         <div className="display text-[25vw] md:text-[21vw] text-sand/[0.05] mt-14 -mb-6 select-none leading-[0.8]" aria-hidden>Athar</div>
         <div className="flex flex-wrap justify-between items-center gap-4 text-sm text-sand/40 pt-6 border-t border-sand/10">
-          <span className="flex items-center gap-3"><IconMark className="h-5 text-sand/60" /> © {new Date().getFullYear()} ATHAR. Made in Egypt.</span>
+          <span className="flex items-center gap-3"><IconMark className="h-5 text-ramady" /> © {new Date().getFullYear()} ATHAR. Made in Egypt.</span>
           <span>Prices in Egyptian pounds (EGP)</span>
         </div>
       </div>
@@ -206,7 +206,7 @@ function Footer() {
 
 export default function StoreLayout() {
   const loc = useLocation();
-  const dark = loc.pathname === "/";
+  const dark = false; // every page opens on Ramly sand
   useEffect(() => {
     if (loc.hash) setTimeout(() => document.getElementById(loc.hash.slice(1))?.scrollIntoView({ behavior: "smooth" }), 80);
     else window.scrollTo(0, 0);
