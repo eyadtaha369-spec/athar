@@ -91,6 +91,7 @@ interface Ctx {
   trackOrder: (number: string, phone: string) => Promise<Order | null>;
   // admin
   me: AdminUser | null;
+  adminToken: string | null;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => void;
   refreshOrders: () => Promise<void>;
@@ -497,6 +498,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       commit((d) => ({ ...d, settings: s }));
       if (REMOTE) enqueue(() => call("saveSettings", { settings: s }, token));
     },
+    adminToken: token,
     sendPush: (r) => sendPushNow(r),
     pushStats: async () => {
       if (REMOTE) return call<{ subscribers: number; log: PushLogEntry[] }>("pushStats", {}, token);

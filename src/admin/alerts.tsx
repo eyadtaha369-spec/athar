@@ -46,7 +46,7 @@ function useChime() {
  * Orders placed while the admin was away are counted as unread on the bell.
  */
 export function useOrderAlerts(onOpen: (id: string) => void) {
-  const { db, mode, lastSync } = useStore();
+  const { db, mode, lastSync, refreshOrders, toast } = useStore();
   const known = useRef<Set<string> | null>(null);
   const [alerts, setAlerts] = useState<Order[]>([]);
   const [lastSeen, setLastSeen] = useState<string>(() => {
@@ -72,11 +72,15 @@ export function useOrderAlerts(onOpen: (id: string) => void) {
     if (!fresh.length) return;
     fresh.forEach((o) => known.current!.add(o.id));
     setAlerts((a) => [...fresh, ...a].slice(0, 4));
+    toast(fresh.length === 1 ? `New Order Received! #${fresh[0].number} - Check Dashboard` : `${fresh.length} new orders received - Check Dashboard`);
     if (sound) chime();
-    if (permission === "granted") {
+    // When this device gets real push alerts, the system notification comes from the server already
+    let pushOn = false;
+    try { pushOn = mode === "sheets" && localStorage.getItem("athar:admin-push") === "1"; } catch { /* ignore */ }
+    if (permission === "granted" && !pushOn) {
       fresh.forEach((o) => {
         try {
-          const n = new Notification(`New order ${o.number}`, {
+          const n = new Notification(`New Order Received! #${o.number} - Check Dashboard`, {
             body: `${o.customer.name} · ${o.total} EGP · ${o.payment.deposit} EGP deposit to verify`,
             tag: o.id,
           });
@@ -84,7 +88,15 @@ export function useOrderAlerts(onOpen: (id: string) => void) {
         } catch { /* notifications blocked in this context */ }
       });
     }
-  }, [db.orders, ready, sound, permission, chime, onOpen]);
+  }, [db.orders, ready, sound, permission, chime, onOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A push for a new order reached this browser: pull the order list now instead of at the next check
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMsg = (e: MessageEvent) => { if (e.data?.type === "athar:new-order") refreshOrders(); };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, [refreshOrders]);
 
   // Flash the tab title while alerts are waiting and the tab isn't in view
   useEffect(() => {

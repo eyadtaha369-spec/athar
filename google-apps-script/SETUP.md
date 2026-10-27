@@ -40,7 +40,18 @@ all products, sizes and prices into the Products sheet.
 | Property | What it does |
 |---|---|
 | `NOTIFY_EMAIL` | Where new-order emails go (setup fills in your Google email). Comma-separate several. |
-| `ADMIN_URL` | Your site address, e.g. `https://athar.vercel.app`, so emails include a link to the admin. |
+| `ADMIN_URL` | Your site address, e.g. `https://athar.vercel.app`. Used for email links **and** for new-order push alerts. |
+| `PUSH_SECRET` | Created by `setup`. Copy the same value into Vercel as `ADMIN_PUSH_SECRET`. |
+
+## New-order push alerts (admins only)
+1. Paste the new `Code.gs`, choose **setup** in the function menu and click **Run**. Approve the new
+   permission ("connect to an external service"); the log prints `PUSH_SECRET`.
+2. Script properties: add `ADMIN_URL` = your live site address (no trailing slash).
+3. Deploy a new version (below).
+4. Vercel → Settings → Environment Variables: `ADMIN_PUSH_SECRET` (the PUSH_SECRET value) and
+   `VAPID_PRIVATE_KEY`, then Redeploy.
+5. On each phone/laptop: sign in to `/admin`, tap **Get order alerts** (or Push → New-order alerts) and send a test.
+   iPhone: add the admin to the Home Screen first and turn alerts on from there.
 
 ## Updating the script later
 After pasting a new `Code.gs`: **Deploy → Manage deployments → edit (pencil) → Version: New version → Deploy**.

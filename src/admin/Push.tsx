@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, Send } from "lucide-react";
 import { Mark } from "../components/ui";
-import { PushToggle } from "../components/Push";
+import { AdminAlertsCard } from "./AdminAlerts";
 import { useStore, type PushLogEntry } from "../lib/store";
 import { Forbidden, PageHead, can } from "./AdminLayout";
 import { cx, fmtDate } from "../lib/utils";
@@ -52,7 +52,7 @@ export default function PushCenter() {
 
   return (
     <>
-      <PageHead title="Push notifications" sub="Send new drops, offers and news to everyone who turned on notifications." />
+      <PageHead title="Push notifications" sub="Send new drops and offers to subscribed customers, and get new-order alerts on your own devices." />
 
       <div className="grid xl:grid-cols-[1.4fr_1fr] gap-4 items-start">
         {/* Compose */}
@@ -114,6 +114,7 @@ export default function PushCenter() {
 
         {/* Preview + stats */}
         <div className="space-y-4">
+          <AdminAlertsCard />
           <section className="rounded-2xl bg-fahmy text-sand p-5">
             <p className="text-xs text-ramady mb-3">Preview</p>
             <div className="rounded-xl bg-[#2A2927] p-3.5 flex gap-3">
@@ -128,7 +129,7 @@ export default function PushCenter() {
 
           <section className="rounded-2xl bg-paper border border-ramady/50 p-5">
             <div className="flex items-baseline justify-between">
-              <h2 className="font-semibold">Subscribers</h2>
+              <h2 className="font-semibold">Customer subscribers</h2>
               <span className="display tnum text-4xl">{stats ? n : "–"}</span>
             </div>
             {statsErr && <p className="text-sm text-topy-dark mt-2">{statsErr}</p>}
@@ -139,10 +140,6 @@ export default function PushCenter() {
             <div className="mt-4 pt-4 border-t border-ramady/50">
               <p className="text-sm font-medium mb-1 flex items-center gap-2"><Bell size={15} />Automatic order updates</p>
               <p className="text-sm text-stone">Customers who turned on notifications get a push when you confirm, ship, deliver or cancel their order.</p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-ramady/50">
-              <p className="text-sm text-stone mb-2">Try it yourself: turn on notifications on this device, then send a test.</p>
-              <PushToggle label="This device" />
             </div>
           </section>
         </div>

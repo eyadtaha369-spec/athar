@@ -16,13 +16,14 @@
  * Product photos are saved in "ATHAR Product Photos" (viewable by link, so the store can show them).
  */
 
-const SHEET = { orders: "Orders", products: "Products", settings: "Settings", admins: "Admins", subscribers: "Subscribers", pushLog: "PushLog" };
+const SHEET = { orders: "Orders", products: "Products", settings: "Settings", admins: "Admins", subscribers: "Subscribers", pushLog: "PushLog", adminDevices: "AdminDevices" };
 const HEADERS = {
   Orders: ["id", "number", "createdAt", "status", "customer", "phone", "governorate", "city", "address", "items", "total", "deposit", "verifiedDeposit", "codDue", "method", "paymentVerified", "receiptFile", "json"],
   Products: ["id", "name", "category", "fromPrice", "stock", "active", "json"],
   Settings: ["json"],
   Admins: ["id", "name", "email", "role", "passwordHash", "createdAt", "lastLogin"],
   Subscribers: ["id", "endpoint", "json", "phones", "orders", "createdAt", "lastSeen"],
+  AdminDevices: ["id", "adminId", "adminName", "device", "json", "createdAt", "lastSeen"],
   PushLog: ["at", "by", "title", "body", "url", "audience", "sent", "failed"],
 };
 const PUBLIC = ["ping", "catalog", "placeOrder", "trackOrder", "login", "subscribePush", "unsubscribePush"];
@@ -117,6 +118,14 @@ const ROUTES = {
     });
 
     notifyOwner_(order);
+    // Push alert to admins' phones and laptops only. Customers never get this one.
+    notifyAdminsPush_({
+      kind: "new-order",
+      title: "New Order Received! #" + number + " - Check Dashboard",
+      body: order.customer.name + " · " + total + " EGP · " + deposit + " EGP deposit to verify",
+      url: "/admin/orders?o=" + id,
+      tag: "new-order-" + number,
+    });
     return order;
   },
 
@@ -223,6 +232,7 @@ const ROUTES = {
     if (target.id === admin.id) throw new Error("You can't remove your own account.");
     if (target.role === "owner" && all.filter((a) => a.role === "owner").length === 1) throw new Error("The store needs at least one owner.");
     deleteRow_(SHEET.admins, b.id);
+    adminDevices_().filter((d) => d.adminId === b.id).forEach((d) => deleteRow_(SHEET.adminDevices, d.id));
     return listAdmins_(false);
   },
 
@@ -242,6 +252,34 @@ const ROUTES = {
       existing ? existing.createdAt : now, now]);
     return { id: id };
   },
+
+  /* ---------- admin new-order alerts (admins only) ---------- */
+
+  // A signed-in admin turned on order alerts on this phone or computer.
+  subscribeAdminPush: (b, admin) => {
+    const sub = b.subscription;
+    if (!sub || !sub.endpoint || !sub.keys) throw new Error("That browser didn't send a valid subscription.");
+    const id = sha256_(sub.endpoint).slice(0, 24);
+    const existing = adminDevices_().find((d) => d.id === id);
+    const now = new Date().toISOString();
+    upsert_(SHEET.adminDevices, id, [id, admin.id, admin.name, String(b.device || "").slice(0, 60), JSON.stringify(sub), existing ? existing.createdAt : now, now]);
+    return adminPushInfo_(admin);
+  },
+
+  unsubscribeAdminPush: (b, admin) => {
+    if (b.endpoint) deleteRow_(SHEET.adminDevices, sha256_(b.endpoint).slice(0, 24));
+    if (b.id) {
+      const d = adminDevices_().find((x) => x.id === b.id);
+      if (d && (d.adminId === admin.id || admin.role === "owner")) deleteRow_(SHEET.adminDevices, d.id);
+    }
+    return adminPushInfo_(admin);
+  },
+
+  adminPushInfo: (b, admin) => adminPushInfo_(admin),
+
+  testAdminPush: (b, admin) => notifyAdminsPush_({
+    kind: "test", title: "ATHAR order alerts are on", body: "New orders will show up here, even when the dashboard is closed.", url: "/admin/orders", tag: "athar-test",
+  }, admin.id),
 
   unsubscribePush: (b) => { if (b.endpoint) deleteRow_(SHEET.subscribers, sha256_(b.endpoint).slice(0, 24)); return true; },
 
@@ -283,6 +321,8 @@ function setup() {
   folder_("ATHAR Product Photos");
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty("NOTIFY_EMAIL")) props.setProperty("NOTIFY_EMAIL", Session.getEffectiveUser().getEmail());
+  if (!props.getProperty("PUSH_SECRET")) props.setProperty("PUSH_SECRET", Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, ""));
+  Logger.log("PUSH_SECRET (copy it into Vercel as ADMIN_PUSH_SECRET): " + props.getProperty("PUSH_SECRET"));
   Logger.log("ATHAR is set up. Owner login: owner@athar.eg / athar2026. Order alerts go to " + props.getProperty("NOTIFY_EMAIL"));
 }
 
@@ -369,6 +409,48 @@ function listSubscribers_() {
     phones: String(r[3] || "").replace(/^'/, "").split(",").map((p) => p.replace(/\D/g, "")).filter(Boolean), orders: String(r[4] || "").split(",").filter(Boolean),
     createdAt: String(r[5]),
   }));
+}
+
+function adminDevices_() {
+  return rows_(SHEET.adminDevices).filter((r) => r[0]).map((r) => ({
+    id: String(r[0]), adminId: String(r[1]), adminName: String(r[2]), device: String(r[3]), subscription: JSON.parse(r[4]), createdAt: String(r[5]), lastSeen: String(r[6]),
+  }));
+}
+
+function pushConfig_() {
+  const props = PropertiesService.getScriptProperties();
+  const site = String(props.getProperty("ADMIN_URL") || "").replace(/\/+$/, "");
+  return { url: props.getProperty("PUSH_URL") || (site ? site + "/api/admin-alert" : ""), secret: props.getProperty("PUSH_SECRET") || "" };
+}
+
+function adminPushInfo_(admin) {
+  const c = pushConfig_();
+  return {
+    configured: !!(c.url && c.secret),
+    devices: adminDevices_().map((d) => ({ id: d.id, adminName: d.adminName, device: d.device, createdAt: d.createdAt, mine: d.adminId === admin.id })),
+  };
+}
+
+/**
+ * Sends a push to every admin device (or one admin's devices) through the site's /api/admin-alert
+ * function, which holds the VAPID key. Never throws: an order must save even if push is down.
+ */
+function notifyAdminsPush_(message, onlyAdminId) {
+  const c = pushConfig_();
+  if (!c.url || !c.secret) return { configured: false, targets: 0, sent: 0 };
+  const devices = adminDevices_().filter((d) => !onlyAdminId || d.adminId === onlyAdminId);
+  if (!devices.length) return { configured: true, targets: 0, sent: 0 };
+  try {
+    const res = UrlFetchApp.fetch(c.url, {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      payload: JSON.stringify({ secret: c.secret, message: message, subscriptions: devices.map((d) => ({ id: d.id, subscription: d.subscription })) }),
+    });
+    const j = JSON.parse(res.getContentText() || "{}");
+    (j.gone || []).forEach((id) => deleteRow_(SHEET.adminDevices, id)); // devices that turned alerts off or expired
+    return { configured: true, targets: devices.length, sent: j.sent || 0, error: j.ok === false ? j.error : undefined };
+  } catch (e) {
+    return { configured: true, targets: devices.length, sent: 0, error: "The site's push service didn't answer." };
+  }
 }
 
 function writeAdmin_(a) {

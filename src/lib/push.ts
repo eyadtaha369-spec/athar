@@ -25,7 +25,7 @@ export function registerServiceWorker() {
   return reg;
 }
 
-function keyBytes(base64url: string) {
+export function keyBytes(base64url: string) {
   const pad = "=".repeat((4 - (base64url.length % 4)) % 4);
   const raw = atob((base64url + pad).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
@@ -57,7 +57,10 @@ export async function enablePush(link: { phones?: string[]; orders?: string[] } 
 
 async function saveSubscription(sub: PushSubscription, link: { phones?: string[]; orders?: string[] }) {
   const json = sub.toJSON();
-  if (REMOTE) await call("subscribePush", { subscription: json, phones: link.phones ?? [], orders: link.orders ?? [] });
+  if (REMOTE) {
+    await call("subscribePush", { subscription: json, phones: link.phones ?? [], orders: link.orders ?? [] });
+    try { localStorage.setItem("athar:push-customer", "1"); } catch { /* ignore */ }
+  }
   else {
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ endpoint: json.endpoint, ...link })); } catch { /* ignore */ }
   }
@@ -76,7 +79,11 @@ export async function disablePush() {
   const sub = await r?.pushManager.getSubscription().catch(() => null);
   if (!sub) return;
   const endpoint = sub.endpoint;
-  await sub.unsubscribe().catch(() => undefined);
+  // the same browser subscription also carries admin order alerts; keep it alive for those
+  let adminAlerts = false;
+  try { adminAlerts = localStorage.getItem("athar:admin-push") === "1"; } catch { /* ignore */ }
+  if (!adminAlerts) await sub.unsubscribe().catch(() => undefined);
+  try { localStorage.removeItem("athar:push-customer"); } catch { /* ignore */ }
   if (REMOTE) await call("unsubscribePush", { endpoint }).catch(() => undefined);
   else try { localStorage.removeItem(LOCAL_KEY); } catch { /* ignore */ }
 }

@@ -7,7 +7,11 @@ self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data && event.data.text() }; }
   const title = data.title || "ATHAR أثر";
-  event.waitUntil(
+  // An open admin dashboard refreshes its order list right away (banner + chime) instead of waiting for the next check
+  const tellPages = data.kind === "new-order"
+    ? self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => wins.forEach((w) => w.postMessage({ type: "athar:new-order", tag: data.tag })))
+    : Promise.resolve();
+  event.waitUntil(Promise.all([tellPages,
     self.registration.showNotification(title, {
       body: data.body || "",
       icon: "/icon-192.png",
@@ -15,9 +19,11 @@ self.addEventListener("push", (event) => {
       tag: data.tag || "athar",
       renotify: !!data.tag,
       dir: "auto",
+      requireInteraction: data.kind === "new-order",
+      vibrate: data.kind === "new-order" ? [120, 60, 120] : undefined,
       data: { url: data.url || "/" },
     })
-  );
+  ]));
 });
 
 self.addEventListener("notificationclick", (event) => {

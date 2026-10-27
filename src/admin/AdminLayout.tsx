@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BellRing, BarChart3, LogOut, Megaphone, Package, Settings as Cog, ShoppingCart, Store, Users, Volume2, VolumeX, X } from "lucide-react";
 import { useOrderAlerts } from "./alerts";
+import { AlertsHeaderButton } from "./AdminAlerts";
 import { useStore, DEFAULT_OWNER } from "../lib/store";
 import { Lockup, Logo, Toast } from "../components/ui";
 import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
@@ -187,11 +188,7 @@ export default function AdminLayout() {
             <p className="hidden lg:block text-stone text-sm">Signed in as <span className="text-fahmy">{me.name}</span> <span className="capitalize">({me.role})</span></p>
             <div className="flex items-center gap-1">
               <SyncStatus />
-              {al.permission === "default" && (
-                <button onClick={al.enableDesktop} className="hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-full text-xs border border-ramady/70 hover:border-fahmy" title="Get a pop-up on this computer for every new order">
-                  <BellRing size={14} />Turn on pop-ups
-                </button>
-              )}
+              <AlertsHeaderButton onEnabled={al.enableDesktop} />
               <button onClick={al.toggleSound} className="w-10 h-10 grid place-items-center rounded-full hover:bg-ramly" aria-label={al.sound ? "Mute new-order sound" : "Turn on new-order sound"} title={al.sound ? "Sound on for new orders" : "Sound off"}>
                 {al.sound ? <Volume2 size={18} /> : <VolumeX size={18} className="text-stone" />}
               </button>
