@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BellRing, BarChart3, LogOut, Megaphone, Package, Settings as Cog, ShoppingCart, Store, Users, Volume2, VolumeX, X } from "lucide-react";
 import { useOrderAlerts } from "./alerts";
 import { AdminPushPrompt, AlertsHeaderButton } from "./AdminAlerts";
-import { useStore, DEFAULT_OWNER } from "../lib/store";
+import { useStore, LEGACY_OWNER_EMAIL } from "../lib/store";
 import { Lockup, Logo, Toast } from "../components/ui";
 import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
 import type { AdminRole } from "../lib/types";
@@ -13,11 +13,13 @@ export const can = (role: AdminRole | undefined, what: "products" | "team" | "se
   role === "owner" || (role === "admin" && what === "products");
 
 function Login() {
-  const { login } = useStore();
+  const { login, needsOwner } = useStore();
+  const [firstRun, setFirstRun] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => { needsOwner().then(setFirstRun); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="min-h-screen bg-fahmy text-sand grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between p-12">
@@ -26,27 +28,72 @@ function Login() {
         <p className="text-ramady">Store admin</p>
       </div>
       <div className="bg-sand text-fahmy flex items-center justify-center gutter py-16">
-        <form
-          className="w-full max-w-[380px]"
-          onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr((await login(email, pw)) || ""); setBusy(false); }}
-        >
-          <div className="lg:hidden mb-10"><Logo /></div>
-          <h1 className="display text-3xl">Sign in to admin</h1>
-          <p className="text-stone mt-2 mb-8">Manage orders, products and your team.</p>
-          <label htmlFor="ad-email" className="label">Email</label>
-          <input id="ad-email" type="email" autoComplete="username" className="field mb-4" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <label htmlFor="ad-pw" className="label">Password</label>
-          <input id="ad-pw" type="password" autoComplete="current-password" className="field" value={pw} onChange={(e) => setPw(e.target.value)} required />
-          {err && <p className="text-topy-dark text-sm mt-3" role="alert">{err}</p>}
-          <button className="btn-dark w-full mt-6" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-          <div className="mt-8 rounded-xl bg-ramly/70 p-4 text-sm">
-            <p className="font-medium">Demo owner account</p>
-            <p className="text-stone tnum mt-1 select-all">{DEFAULT_OWNER.email} / {DEFAULT_OWNER.password}</p>
-            <button type="button" className="mt-2 underline underline-offset-2" onClick={() => { setEmail(DEFAULT_OWNER.email); setPw(DEFAULT_OWNER.password); }}>Fill in</button>
-          </div>
-          <Link to="/" className="block text-sm text-stone mt-8 hover:text-fahmy">Back to the store</Link>
-        </form>
+        {firstRun ? <CreateOwner /> : (
+          <form
+            className="w-full max-w-[380px]"
+            onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr((await login(email, pw)) || ""); setBusy(false); }}
+          >
+            <div className="lg:hidden mb-10"><Logo /></div>
+            <h1 className="display text-3xl">Sign in to admin</h1>
+            <p className="text-stone mt-2 mb-8">Use your own admin account.</p>
+            <label htmlFor="ad-email" className="label">Email</label>
+            <input id="ad-email" type="email" autoComplete="username" className="field mb-4" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label htmlFor="ad-pw" className="label">Password</label>
+            <input id="ad-pw" type="password" autoComplete="current-password" className="field" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            {err && <p className="text-topy-dark text-sm mt-3" role="alert">{err}</p>}
+            <button className="btn-dark w-full mt-6" disabled={busy || firstRun === null}>{busy ? "Signing in…" : "Sign in"}</button>
+            <p className="text-xs text-stone mt-6">No account? Ask the store owner to add you in Admin → Team.</p>
+          </form>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** First visit on a store with no admins: create the owner account (needs the setup code on the live store). */
+function CreateOwner() {
+  const { createFirstOwner, mode } = useStore();
+  const [f, setF] = useState({ name: "", email: "", password: "", setupCode: "" });
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const live = mode === "sheets";
+  return (
+    <form className="w-full max-w-[380px]"
+      onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr((await createFirstOwner(f)) || ""); setBusy(false); }}>
+      <div className="lg:hidden mb-10"><Logo /></div>
+      <h1 className="display text-3xl">Create the owner account</h1>
+      <p className="text-stone mt-2 mb-8">This store has no admins yet. The account you create here is the owner and can add the rest of the team.</p>
+      <label htmlFor="co-name" className="label">Your name</label>
+      <input id="co-name" className="field mb-4" autoComplete="name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required />
+      <label htmlFor="co-email" className="label">Email</label>
+      <input id="co-email" type="email" autoComplete="username" className="field mb-4" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required />
+      <label htmlFor="co-pw" className="label">Password</label>
+      <input id="co-pw" type="password" autoComplete="new-password" minLength={8} className="field mb-1" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required />
+      <p className="text-xs text-stone mb-4">At least 8 characters.</p>
+      {live && (
+        <>
+          <label htmlFor="co-code" className="label">Setup code</label>
+          <input id="co-code" className="field tnum uppercase" autoComplete="off" value={f.setupCode} onChange={(e) => setF({ ...f, setupCode: e.target.value })} required />
+          <p className="text-xs text-stone mt-1">In Apps Script, run <b>setup</b>; the code is printed in the log.</p>
+        </>
+      )}
+      {err && <p className="text-topy-dark text-sm mt-3" role="alert">{err}</p>}
+      <button className="btn-dark w-full mt-6" disabled={busy}>{busy ? "Creating…" : "Create account and sign in"}</button>
+    </form>
+  );
+}
+
+/** Shown while someone is still signed in with the retired built-in account. */
+function LegacyAccountBanner() {
+  const { me } = useStore();
+  if (!me || me.email.toLowerCase() !== LEGACY_OWNER_EMAIL) return null;
+  return (
+    <div className="mb-6 rounded-2xl bg-[#F1DCD3] p-4 md:p-5 flex flex-wrap items-center justify-between gap-3" role="alert">
+      <div className="max-w-[70ch]">
+        <p className="font-semibold">You're signed in with the old default account</p>
+        <p className="text-sm mt-1">Create your own owner account in Team now. As soon as it exists, the default account is deleted and you sign in with yours.</p>
+      </div>
+      <Link to="/admin/team" className="btn-dark h-10 px-4">Open Team</Link>
     </div>
   );
 }
@@ -146,11 +193,32 @@ function AlertBanner({ al, onOpen }: { al: Alerts; onOpen: (id: string) => void 
   );
 }
 
+/**
+ * While the admin is open: keep it out of search engines, and point "Add to Home Screen"
+ * at an app that opens straight to /admin (the storefront has no admin link).
+ */
+function useAdminHead() {
+  useEffect(() => {
+    const head = document.head;
+    const robots = document.createElement("meta");
+    robots.name = "robots"; robots.content = "noindex, nofollow";
+    head.appendChild(robots);
+    const title = document.createElement("meta");
+    title.name = "apple-mobile-web-app-title"; title.content = "ATHAR Admin";
+    head.appendChild(title);
+    const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const before = manifest?.getAttribute("href");
+    manifest?.setAttribute("href", "/admin.webmanifest");
+    return () => { robots.remove(); title.remove(); if (manifest && before) manifest.setAttribute("href", before); };
+  }, []);
+}
+
 export default function AdminLayout() {
   const { me, logout, db } = useStore();
   const go = useNavigate();
   const openOrder = useCallback((id: string) => go(`/admin/orders?o=${id}`), [go]);
   const al = useOrderAlerts(openOrder);
+  useAdminHead();
   if (!me) return <><Login /><Toast /></>;
   const pending = db.orders.filter((o) => o.status === "pending").length;
   const nav = [
@@ -206,6 +274,7 @@ export default function AdminLayout() {
           </nav>
         </header>
         <main className="gutter py-8 md:py-10 flex-1 max-w-[1400px] w-full">
+          <LegacyAccountBanner />
           <AlertBanner al={al} onOpen={openOrder} />
           <AdminPushPrompt onEnabled={al.enableDesktop} />
           <Outlet />

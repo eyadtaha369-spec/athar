@@ -10,7 +10,7 @@ import {
 
 const STATE_COPY: Partial<Record<AdminPushState, string>> = {
   blocked: "Notifications are blocked for this site. Allow them in the browser's site settings, then try again.",
-  "ios-install": "On iPhone: in Safari tap Share → Add to Home Screen, open ATHAR from the Home Screen, go to Admin login at the bottom and turn alerts on there.",
+  "ios-install": "On iPhone: open this admin page in Safari, tap Share → Add to Home Screen, then open ATHAR Admin from the Home Screen and turn alerts on there.",
   unsupported: "This browser can't receive push alerts. Try Chrome, Edge, Firefox or Safari.",
 };
 
@@ -204,7 +204,7 @@ export function AdminPushPrompt({ onEnabled }: { onEnabled?: () => void }) {
             {ios ? (
               <p className="text-sm text-stone mt-3">
                 On iPhone, alerts work from the Home Screen app: tap <Share size={14} className="inline -mt-0.5" /> Share → <b>Add to Home Screen</b>,
-                open ATHAR from there, tap <b>Admin login</b> at the bottom, sign in and turn alerts on.
+                then open <b>ATHAR Admin</b> from the Home Screen, sign in and turn alerts on.
               </p>
             ) : (
               <p className="text-sm text-stone mt-3">

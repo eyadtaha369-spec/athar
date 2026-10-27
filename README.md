@@ -15,7 +15,7 @@ npm run build:single # one-file preview build → dist-single/index.html
 |---|---|
 | `/` home · `/shop` · `/p/:slug` · `/checkout` · `/order/:number` · `/track` | `/admin` overview · `/admin/orders` · `/admin/products` · `/admin/team` · `/admin/settings` |
 
-**Demo admin:** `owner@athar.eg` / `athar2026` — change it in Admin → Team, and remove the demo hint in `src/admin/AdminLayout.tsx` (Login) before launch.
+**Admin access:** `/admin` is not linked from the storefront and is marked noindex. There is no built-in account: the first visit creates the owner account (on the live store this needs the setup code from Apps Script `setup`). The owner adds every other admin in Team. Wrong passwords lock that email for 15 minutes after 5 tries. The old `owner@athar.eg` account is deleted automatically once a real owner account exists.
 
 ## How it works
 - **Checkout:** deposit + cash on delivery. Customer pays a deposit (min 100 EGP) by InstaPay / wallet / bank transfer, uploads the receipt, and pays the rest in cash on delivery. Free delivery from 1,500 EGP; delivery in 5 to 7 working days. Stock is reserved on order; returned on cancel.

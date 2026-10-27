@@ -20,7 +20,11 @@ privately in your Google Drive, and you get an email for every new order.
 3. The sheet now has tabs **Orders, Products, Settings, Admins**, and your Drive has
    **ATHAR Receipts** and **ATHAR Product Photos** folders.
 
-Default owner login: `owner@athar.eg` / `athar2026`. Change it in Admin → Team after you sign in.
+There is no built-in admin account. On a new store, `setup` prints a **setup code** in the log:
+open your site at `/admin` and create the owner account with it. The owner then adds everyone
+else in Admin → Team, so each person signs in with their own email and password.
+
+The admin is not linked anywhere on the storefront. Bookmark `/admin`.
 
 ## 4. Deploy as a web app
 1. **Deploy → New deployment**, gear icon → **Web app**.

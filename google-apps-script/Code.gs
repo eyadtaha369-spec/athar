@@ -26,7 +26,9 @@ const HEADERS = {
   AdminDevices: ["id", "adminId", "adminName", "device", "json", "createdAt", "lastSeen"],
   PushLog: ["at", "by", "title", "body", "url", "audience", "sent", "failed"],
 };
-const PUBLIC = ["ping", "catalog", "placeOrder", "trackOrder", "login", "subscribePush", "unsubscribePush"];
+const PUBLIC = ["ping", "catalog", "placeOrder", "trackOrder", "login", "setupStatus", "createFirstOwner", "subscribePush", "unsubscribePush"];
+// The old built-in account. It's retired: it can only sign in until you create your own owner account, then it's deleted.
+const LEGACY_EMAIL = "owner@athar.eg";
 const SESSION_HOURS = 6;
 const CORE_ZONES = ["Cairo", "Giza", "Alexandria"];
 
@@ -139,15 +141,52 @@ const ROUTES = {
 
   login: (b) => {
     const email = String(b.email || "").trim().toLowerCase();
+    const cache = CacheService.getScriptCache();
+    const failKey = "fail_" + sha256_(email).slice(0, 20);
+    const fails = Number(cache.get(failKey) || 0);
+    if (fails >= 5) throw new Error("Too many wrong attempts. Wait 15 minutes and try again.");
+    retireLegacyOwner_();
     const admins = listAdmins_(true);
     const a = admins.find((x) => x.email.toLowerCase() === email);
-    if (!a || a.passwordHash !== b.passwordHash) throw new Error("That email and password don't match an admin account.");
+    if (!a || a.passwordHash !== b.passwordHash) {
+      cache.put(failKey, String(fails + 1), 15 * 60);
+      throw new Error("That email and password don't match an admin account.");
+    }
+    cache.remove(failKey);
     const token = Utilities.getUuid() + Utilities.getUuid();
-    CacheService.getScriptCache().put("s_" + token, a.id, SESSION_HOURS * 3600);
+    cache.put("s_" + token, a.id, SESSION_HOURS * 3600);
     a.lastLogin = new Date().toISOString();
     writeAdmin_(a);
     return { token: token, admin: publicAdmin_(a), admins: listAdmins_(false) };
   },
+
+  // Tells the sign-in page whether the store still needs its first owner account.
+  setupStatus: () => ({ needsOwner: listAdmins_(false).length === 0 }),
+
+  // First owner account. Only works while there are no admins, and needs the setup code from the Apps Script log.
+  createFirstOwner: (b) => {
+    if (listAdmins_(false).length) throw new Error("This store already has an owner. Sign in instead.");
+    const props = PropertiesService.getScriptProperties();
+    const cache = CacheService.getScriptCache();
+    const tries = Number(cache.get("setup_tries") || 0);
+    if (tries >= 10) throw new Error("Too many wrong setup codes. Wait 15 minutes.");
+    const code = props.getProperty("SETUP_CODE");
+    if (!code || String(b.setupCode || "").trim().toUpperCase() !== code) {
+      cache.put("setup_tries", String(tries + 1), 15 * 60);
+      throw new Error("That setup code isn't right. Run setup in Apps Script to see it in the log.");
+    }
+    const email = String(b.email || "").trim().toLowerCase();
+    const name = String(b.name || "").trim().slice(0, 60);
+    if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !/^[a-f0-9]{64}$/.test(String(b.passwordHash || ""))) throw new Error("Add your name, a valid email and a password.");
+    if (email === LEGACY_EMAIL) throw new Error("Use your own email address.");
+    const a = { id: Utilities.getUuid(), name: name, email: email, role: "owner", passwordHash: b.passwordHash, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() };
+    writeAdmin_(a);
+    props.deleteProperty("SETUP_CODE");
+    const token = Utilities.getUuid() + Utilities.getUuid();
+    cache.put("s_" + token, a.id, SESSION_HOURS * 3600);
+    return { token: token, admin: publicAdmin_(a), admins: listAdmins_(false) };
+  },
+
 
   me: (b, admin) => ({ admin: publicAdmin_(admin), admins: listAdmins_(false) }),
 
@@ -219,8 +258,11 @@ const ROUTES = {
   addAdmin: (b, admin) => {
     requireRole_(admin, ["owner"]);
     const email = String(b.email || "").trim().toLowerCase();
+    if (email === LEGACY_EMAIL) throw new Error("Use a real email address for each admin.");
     if (listAdmins_(true).some((a) => a.email.toLowerCase() === email)) throw new Error("An admin with that email already exists.");
-    writeAdmin_({ id: Utilities.getUuid(), name: b.name, email: email, role: b.role, passwordHash: b.passwordHash, createdAt: new Date().toISOString() });
+    if (["owner", "admin", "staff"].indexOf(b.role) === -1) throw new Error("Pick a role.");
+    writeAdmin_({ id: Utilities.getUuid(), name: String(b.name || "").slice(0, 60), email: email, role: b.role, passwordHash: b.passwordHash, createdAt: new Date().toISOString() });
+    retireLegacyOwner_();
     return listAdmins_(false);
   },
 
@@ -323,9 +365,7 @@ function authorizeAlerts() {
 
 function setup() {
   Object.keys(HEADERS).forEach(sheet_);
-  if (!listAdmins_(true).length) {
-    writeAdmin_({ id: Utilities.getUuid(), name: "Store Owner", email: "owner@athar.eg", role: "owner", passwordHash: sha256_("athar2026"), createdAt: new Date().toISOString() });
-  }
+  retireLegacyOwner_();
   const s = sheet_(SHEET.settings);
   if (!s.getRange(2, 1).getValue()) s.getRange(2, 1).setValue(JSON.stringify(DEFAULT_SETTINGS));
   folder_("ATHAR Receipts");
@@ -334,7 +374,11 @@ function setup() {
   if (!props.getProperty("NOTIFY_EMAIL")) props.setProperty("NOTIFY_EMAIL", Session.getEffectiveUser().getEmail());
   if (!props.getProperty("PUSH_SECRET")) props.setProperty("PUSH_SECRET", Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, ""));
   Logger.log("PUSH_SECRET (copy it into Vercel as ADMIN_PUSH_SECRET): " + props.getProperty("PUSH_SECRET"));
-  Logger.log("ATHAR is set up. Owner login: owner@athar.eg / athar2026. Order alerts go to " + props.getProperty("NOTIFY_EMAIL"));
+  if (!listAdmins_(false).length) {
+    if (!props.getProperty("SETUP_CODE")) props.setProperty("SETUP_CODE", Utilities.getUuid().replace(/-/g, "").slice(0, 8).toUpperCase());
+    Logger.log("No admin accounts yet. Open your site at /admin and create the owner account with setup code: " + props.getProperty("SETUP_CODE"));
+  }
+  Logger.log("ATHAR is set up. Order alerts go to " + props.getProperty("NOTIFY_EMAIL"));
 }
 
 const DEFAULT_SETTINGS = {
@@ -404,6 +448,18 @@ function writeProduct_(p) {
 function getSettings_() {
   const v = sheet_(SHEET.settings).getRange(2, 1).getValue();
   return v ? Object.assign({}, DEFAULT_SETTINGS, JSON.parse(v)) : DEFAULT_SETTINGS;
+}
+
+/** Deletes the old built-in owner account once a real owner account exists. */
+function retireLegacyOwner_() {
+  const all = listAdmins_(false);
+  const legacy = all.filter((a) => String(a.email).toLowerCase() === LEGACY_EMAIL);
+  if (!legacy.length) return;
+  const realOwners = all.filter((a) => a.role === "owner" && String(a.email).toLowerCase() !== LEGACY_EMAIL);
+  if (realOwners.length) legacy.forEach((a) => {
+    deleteRow_(SHEET.admins, a.id);
+    adminDevices_().filter((d) => d.adminId === a.id).forEach((d) => deleteRow_(SHEET.adminDevices, d.id));
+  });
 }
 
 function listAdmins_(withHash) {

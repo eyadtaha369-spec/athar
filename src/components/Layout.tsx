@@ -192,7 +192,6 @@ function Footer() {
             <ul className="space-y-2.5 text-[15px]">
               <li><a className="hover:text-topy" href="https://instagram.com" target="_blank" rel="noreferrer">Instagram</a></li>
               <li><a className="hover:text-topy" href="https://tiktok.com" target="_blank" rel="noreferrer">TikTok</a></li>
-              <li><Link className="hover:text-topy" to="/admin">Admin login</Link></li>
               <li className="pt-2"><PushToggle dark /></li>
             </ul>
           </div>

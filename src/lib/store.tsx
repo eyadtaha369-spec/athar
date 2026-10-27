@@ -50,17 +50,14 @@ interface DB {
 
 export type NewOrder = Omit<Order, "id" | "number" | "createdAt" | "status" | "history" | "paymentVerified" | "codDue">;
 
-// Default owner account (change the password from Admin → Team after first login)
-export const DEFAULT_OWNER = { email: "owner@athar.eg", password: "athar2026" };
+// The old built-in owner account is retired; each admin signs in with their own account.
+export const LEGACY_OWNER_EMAIL = "owner@athar.eg";
 
 async function freshDB(): Promise<DB> {
   return {
     products: SEED_PRODUCTS,
     orders: seedOrders(SEED_PRODUCTS),
-    admins: [{
-      id: "a1", name: "Store Owner", email: DEFAULT_OWNER.email, role: "owner",
-      passwordHash: await sha256(DEFAULT_OWNER.password), createdAt: new Date().toISOString(),
-    }],
+    admins: [], // the first visit to /admin creates the owner account
     notices: [],
     settings: SEED_SETTINGS,
     seq: 1100,
@@ -93,6 +90,8 @@ interface Ctx {
   me: AdminUser | null;
   adminToken: string | null;
   login: (email: string, password: string) => Promise<string | null>;
+  needsOwner: () => Promise<boolean>;
+  createFirstOwner: (o: { name: string; email: string; password: string; setupCode: string }) => Promise<string | null>;
   logout: () => void;
   refreshOrders: () => Promise<void>;
   lastSync: number | null;
@@ -192,7 +191,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         try {
           const d: DB = JSON.parse(raw);
-          dbRef.current = { ...d, products: d.products.filter(liveCategory).map(normalizeProduct), settings: withSettings(d.settings), orders: d.orders.map(normalizeOrder) };
+          dbRef.current = { ...d, products: d.products.filter(liveCategory).map(normalizeProduct), settings: withSettings(d.settings), orders: d.orders.map(normalizeOrder),
+            admins: d.admins.filter((a) => a.email.toLowerCase() !== LEGACY_OWNER_EMAIL) };
           setDb(dbRef.current);
           return;
         } catch { /* fall through */ }
@@ -381,6 +381,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       commit((d) => ({ ...d, admins: d.admins.map((x) => (x.id === a.id ? { ...x, lastLogin: new Date().toISOString() } : x)) }));
       return null;
     },
+    needsOwner: async () => {
+      if (REMOTE) { try { return (await call<{ needsOwner: boolean }>("setupStatus", {})).needsOwner; } catch { return false; } }
+      return db.admins.length === 0;
+    },
+    createFirstOwner: async ({ name, email, password, setupCode }) => {
+      if (password.length < 8) return "Use a password with at least 8 characters.";
+      const passwordHash = await sha256(password);
+      if (REMOTE) {
+        try {
+          const r = await call<{ token: string; admin: AdminUser; admins: AdminUser[] }>("createFirstOwner", { name, email, passwordHash, setupCode });
+          safeSet(TOKEN_KEY, r.token, sessionStorage);
+          setRemoteMe(r.admin);
+          commit((d) => ({ ...d, admins: r.admins }));
+          setToken(r.token);
+          return null;
+        } catch (err) { return (err as Error).message; }
+      }
+      if (db.admins.length) return "This store already has an owner. Sign in instead.";
+      const a: AdminUser = { id: uid(), name: name.trim(), email: email.trim().toLowerCase(), role: "owner", passwordHash, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() };
+      commit((d) => ({ ...d, admins: [a] }));
+      safeSet(SESSION_KEY, a.id, sessionStorage);
+      setMeId(a.id);
+      return null;
+    },
     logout: () => {
       if (REMOTE && token) call("logout", {}, token).catch(() => undefined);
       signOutLocal();
@@ -468,6 +492,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         try {
           const admins = await call<AdminUser[]>("addAdmin", { name, email, role, passwordHash }, token);
           commit((d) => ({ ...d, admins }));
+          if (remoteMe && !admins.some((x) => x.id === remoteMe.id)) {
+            // the old built-in account was retired the moment a real owner existed
+            window.setTimeout(() => { signOutLocal(); toast("The old default account is deleted. Sign in with your own account."); }, 1500);
+          }
           return null;
         } catch (err) { return (err as Error).message; }
       }
