@@ -12,6 +12,17 @@ import { hasPriceRange } from "../lib/pricing";
 export function Mark({ className = "", label = "أثر" }: { className?: string; label?: string }) {
   return <span role="img" aria-label={label} className={cx("mark", className)} style={{ ["--mark" as string]: `url(${img("asset:brand/logo-ar")})` }} />;
 }
+/** "ATHAR" wordmark from the official logo. */
+export function Wordmark({ className = "" }: { className?: string }) {
+  return <span role="img" aria-label="ATHAR" className={cx("mark wordmark", className)} style={{ ["--mark" as string]: `url(${img("asset:brand/wordmark")})` }} />;
+}
+/** Full logo: أثر mark, ATHAR and "More than just products". */
+export function Lockup({ className = "" }: { className?: string }) {
+  return <span role="img" aria-label="ATHAR أثر, More than just products" className={cx("mark lockup", className)} style={{ ["--mark" as string]: `url(${img("asset:brand/lockup")})` }} />;
+}
+export function TaglineMark({ className = "" }: { className?: string }) {
+  return <span role="img" aria-label="More than just products" className={cx("mark tagline-mark", className)} style={{ ["--mark" as string]: `url(${img("asset:brand/tagline")})` }} />;
+}
 export function IconMark({ className = "" }: { className?: string }) {
   return <span aria-hidden className={cx("mark icon-mark", className)} style={{ ["--icon" as string]: `url(${img("asset:brand/icon")})` }} />;
 }
@@ -19,8 +30,8 @@ export function IconMark({ className = "" }: { className?: string }) {
 export function Logo({ light = false, className = "" }: { light?: boolean; className?: string }) {
   return (
     <span className={cx("inline-flex items-center gap-3 select-none", light ? "text-sand" : "text-fahmy", className)}>
-      <Mark className="h-8 md:h-9 shrink-0" label="ATHAR أثر" />
-      <span className="logotype text-[12.5px] leading-none hidden sm:inline translate-y-[2px]">Athar</span>
+      <Mark className="h-9 md:h-10 shrink-0" label="ATHAR أثر" />
+      <Wordmark className="h-[11px] md:h-[12px] hidden sm:inline-block translate-y-[3px]" />
     </span>
   );
 }

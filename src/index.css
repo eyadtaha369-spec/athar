@@ -40,11 +40,15 @@ body::before {
 .display :lang(ar), .display[lang="ar"] { font-family: "Reem Kufi", "IBM Plex Sans Arabic", sans-serif; font-weight: 700; letter-spacing: 0; }
 /* ATHAR logotype: IBM Plex Sans Light, wide tracking, as on the brand board */
 .logotype { font-family: "IBM Plex Sans", sans-serif; font-weight: 300; letter-spacing: .42em; text-transform: uppercase; }
+/* Official logo artwork, drawn as masks so it takes any brand colour (currentColor) */
 .mark {
-  display: inline-block; background: currentColor; aspect-ratio: 900 / 641;
+  display: inline-block; background: currentColor; aspect-ratio: 1632 / 1287;
   -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat;
 }
 .icon-mark { aspect-ratio: 900 / 877; -webkit-mask-image: var(--icon); mask-image: var(--icon); }
+.wordmark { aspect-ratio: 1614 / 189; -webkit-mask-image: var(--mark); mask-image: var(--mark); }
+.lockup { aspect-ratio: 1738 / 1226; -webkit-mask-image: var(--mark); mask-image: var(--mark); }
+.tagline-mark { aspect-ratio: 1738 / 52; -webkit-mask-image: var(--mark); mask-image: var(--mark); }
 /* Geometric lattice from the brand pattern, used as hairline texture */
 .lattice {
   background-image:

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BellRing, BarChart3, LogOut, Package, Settings as Cog, ShoppingCart, Store, Users, Volume2, VolumeX, X } from "lucide-react";
 import { useOrderAlerts } from "./alerts";
 import { useStore, DEFAULT_OWNER } from "../lib/store";
-import { Logo, Mark, Toast } from "../components/ui";
+import { Lockup, Logo, Toast } from "../components/ui";
 import { STATUS_META, cx, egp, fmtDate } from "../lib/utils";
 import type { AdminRole } from "../lib/types";
 
@@ -20,8 +20,8 @@ function Login() {
   return (
     <div className="min-h-screen bg-fahmy text-sand grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between p-12">
-        <Logo light />
-        <Mark className="h-56 text-topy-dark" />
+        <span />
+        <Lockup className="w-[min(360px,80%)] text-sand self-center" />
         <p className="text-ramady">Store admin</p>
       </div>
       <div className="bg-sand text-fahmy flex items-center justify-center gutter py-16">

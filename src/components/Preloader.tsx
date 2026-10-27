@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ImagePlaceholder, Mark } from "./ui";
+import { ImagePlaceholder, Mark, TaglineMark } from "./ui";
 
 const CARDS = ["Flags", "Posters", "Phone cases", "Laptop sleeves", "Sunshades"];
 const KEY = "athar:intro-seen";
@@ -64,8 +64,8 @@ export default function Preloader() {
           <div className="absolute left-0 right-0 bottom-0 gutter pb-8 md:pb-12 flex items-end justify-between gap-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}>
             <span className="display tnum text-[26vw] md:text-[180px]">{String(n).padStart(3, "0")}</span>
             <div className="text-right pb-3">
-              <Mark className="h-10 md:h-14 text-topy" />
-              <p className="logotype text-[10px] md:text-xs text-ramady mt-3">More than just products</p>
+              <Mark className="h-12 md:h-16 text-topy ml-auto" />
+              <TaglineMark className="w-[200px] md:w-[260px] text-ramady mt-4 block" />
             </div>
           </div>
           <div className="absolute left-0 bottom-0 h-[3px] bg-topy" style={{ width: `${n}%` }} />

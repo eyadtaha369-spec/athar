@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { FreeDeliveryBar, IconMark, Logo, Mark, ProductImage, Toast } from "./ui";
+import { FreeDeliveryBar, IconMark, Lockup, Logo, Mark, ProductImage, Toast, Wordmark } from "./ui";
 import Preloader from "./Preloader";
 import { linePrice, useStore } from "../lib/store";
 import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp } from "../lib/utils";
@@ -166,9 +166,7 @@ function Footer() {
       <div className="gutter max-w-[1500px] mx-auto pt-20 pb-10 relative">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <Mark className="h-24 md:h-28 text-topy" />
-            <p className="logotype text-sm mt-6">Athar</p>
-            <p className="text-ramady text-[11px] logotype !tracking-[0.3em] mt-2">More than just products</p>
+            <Lockup className="w-[260px] md:w-[300px] text-sand" />
             <p className="font-ar text-xl text-sand/80 mt-6" lang="ar" dir="rtl">كل تفصيلة ليها أثر</p>
           </div>
           <div>
@@ -194,7 +192,7 @@ function Footer() {
             </ul>
           </div>
         </div>
-        <div className="display text-[25vw] md:text-[21vw] text-sand/[0.05] mt-14 -mb-6 select-none leading-[0.8]" aria-hidden>Athar</div>
+        <Wordmark className="w-full text-sand/[0.06] mt-16 mb-8" />
         <div className="flex flex-wrap justify-between items-center gap-4 text-sm text-sand/40 pt-6 border-t border-sand/10">
           <span className="flex items-center gap-3"><IconMark className="h-5 text-ramady" /> © {new Date().getFullYear()} ATHAR. Made in Egypt.</span>
           <span>Prices in Egyptian pounds (EGP)</span>
