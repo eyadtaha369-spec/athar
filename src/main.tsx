@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, MemoryRouter } from "react-router-dom";
 import App from "./App";
 import { StoreProvider } from "./lib/store";
+// English display face (Google Fonts "Anton", self-hosted). Arabic Ruq'ah is declared in index.css.
+import "@fontsource/anton/latin-400.css";
 import "./index.css";
 
 // The single-file preview build runs inside a sandboxed frame, so it routes in memory.
