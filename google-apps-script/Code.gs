@@ -310,6 +310,17 @@ const ROUTES = {
 /* ---------------- one-time setup ---------------- */
 
 /** Run once from the Apps Script editor: creates the sheets, the owner account and the Drive folders. */
+/**
+ * Run this once from the editor (function menu → authorizeAlerts → Run) to give the script
+ * permission to contact your site, and to check that the push function answers.
+ */
+function authorizeAlerts() {
+  const c = pushConfig_();
+  if (!c.url) { Logger.log("Add the script property ADMIN_URL first (your site address)."); return; }
+  const res = UrlFetchApp.fetch(c.url, { method: "get", muteHttpExceptions: true });
+  Logger.log("Permission OK. " + c.url + " answered HTTP " + res.getResponseCode() + ": " + res.getContentText().slice(0, 200));
+}
+
 function setup() {
   Object.keys(HEADERS).forEach(sheet_);
   if (!listAdmins_(true).length) {
@@ -449,7 +460,7 @@ function notifyAdminsPush_(message, onlyAdminId) {
   } catch (e) {
     const msg = String(e && e.message || e);
     return { configured: true, targets: devices.length, sent: 0, error: /permission/i.test(msg)
-      ? "Apps Script isn't allowed to contact the site yet. In Apps Script pick setup, click Run and approve the permission, then deploy a new version."
+      ? "Apps Script isn't allowed to contact the site yet. In Apps Script pick authorizeAlerts in the function menu, click Run and approve, then deploy a new version."
       : "Couldn't reach " + c.url + ": " + msg };
   }
   const code = res.getResponseCode();
