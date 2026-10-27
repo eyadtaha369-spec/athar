@@ -20,6 +20,8 @@ const sameSecret = (a, b) => {
 };
 
 export default async function handler(req, res) {
+  // GET = setup check for the admin dashboard (says which keys exist, never their values)
+  if (req.method === "GET") return res.json({ ok: true, vapid: !!process.env.VAPID_PRIVATE_KEY, secret: !!process.env.ADMIN_PUSH_SECRET });
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Use POST." });
   const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
   const expected = process.env.ADMIN_PUSH_SECRET;

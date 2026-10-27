@@ -255,7 +255,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!REMOTE || !remoteMe) return;
-    const t = window.setInterval(() => { if (document.visibilityState === "visible") refreshOrders(); }, POLL_MS);
+    // every 12 s while the dashboard is in view, every ~48 s in a background tab
+    let tick = 0;
+    const t = window.setInterval(() => { tick++; if (document.visibilityState === "visible" || tick % 4 === 0) refreshOrders(); }, POLL_MS);
     const onFocus = () => refreshOrders();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);

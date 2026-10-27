@@ -13,7 +13,36 @@ const flag = () => { try { return localStorage.getItem(FLAG) === "1"; } catch { 
 
 export type AdminPushState = "unsupported" | "ios-install" | "blocked" | "off" | "on";
 export type AdminDevice = { id: string; adminName: string; device: string; createdAt: string; mine: boolean };
-export type AdminPushInfo = { configured: boolean; devices: AdminDevice[] };
+export type AdminPushInfo = { configured: boolean; hasUrl?: boolean; hasSecret?: boolean; pushUrl?: string; devices: AdminDevice[] };
+
+export type SetupCheck = { label: string; ok: boolean | null; fix?: string };
+
+/** Walks through every link in the chain and says which one is missing. */
+export async function checkAdminPushSetup(token: string | null, deviceOn: boolean): Promise<SetupCheck[]> {
+  const out: SetupCheck[] = [];
+  let info: AdminPushInfo | null = null;
+  try { info = await call<AdminPushInfo>("adminPushInfo", {}, token); out.push({ label: "Apps Script has the new code", ok: true }); }
+  catch (e) {
+    out.push({ label: "Apps Script has the new code", ok: false, fix: /unknown|action/i.test((e as Error).message) ? "Paste the latest Code.gs, Run setup, then Deploy → Manage deployments → ✏️ → New version → Deploy." : (e as Error).message });
+  }
+  if (info) {
+    out.push({ label: "PUSH_SECRET is set in Apps Script", ok: !!info.hasSecret, fix: "In Apps Script choose setup in the function menu and click Run; it creates PUSH_SECRET." });
+    const here = window.location.origin;
+    const urlOk = !!info.pushUrl && info.pushUrl.startsWith(here);
+    out.push({ label: "ADMIN_URL points to this site", ok: urlOk, fix: info.pushUrl ? `It's set to ${info.pushUrl.replace("/api/admin-alert", "")}. Change the ADMIN_URL script property to ${here}.` : `Add the script property ADMIN_URL = ${here}` });
+  }
+  try {
+    const r = await fetch("/api/admin-alert", { method: "GET" });
+    const j = await r.json();
+    out.push({ label: "VAPID_PRIVATE_KEY is set in Vercel", ok: !!j.vapid, fix: "Vercel → Settings → Environment Variables → add VAPID_PRIVATE_KEY, then Redeploy." });
+    out.push({ label: "ADMIN_PUSH_SECRET is set in Vercel", ok: !!j.secret, fix: "Add ADMIN_PUSH_SECRET (same value as PUSH_SECRET in Apps Script), then Redeploy." });
+  } catch {
+    out.push({ label: "Vercel push function is live", ok: false, fix: "The site doesn't have /api/admin-alert yet. Check that the latest deployment finished in Vercel." });
+  }
+  const mine = info?.devices.some((d) => d.mine) ?? false;
+  out.push({ label: "This device is registered for alerts", ok: deviceOn && mine, fix: "Turn the switch off and on again on this device after the steps above are done." });
+  return out;
+}
 
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const standalone = () => window.matchMedia?.("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;

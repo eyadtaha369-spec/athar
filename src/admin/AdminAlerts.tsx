@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BellRing, Laptop, Share, Smartphone, Trash2 } from "lucide-react";
+import { BellRing, Check, Laptop, Share, Smartphone, Trash2, X as XIcon } from "lucide-react";
 import { useStore } from "../lib/store";
 import { REMOTE } from "../lib/api";
 import { cx, fmtDate } from "../lib/utils";
 import {
-  AdminPushInfo, AdminPushState, adminPushInfo, adminPushState, disableAdminPush, enableAdminPush, removeAdminDevice, testAdminPush,
+  AdminPushInfo, AdminPushState, SetupCheck, adminPushInfo, checkAdminPushSetup, adminPushState, disableAdminPush, enableAdminPush, removeAdminDevice, testAdminPush,
 } from "../lib/adminPush";
 
 const STATE_COPY: Partial<Record<AdminPushState, string>> = {
@@ -67,6 +67,9 @@ export function AdminAlertsCard({ onEnabled }: { onEnabled?: () => void }) {
   const { state, busy, enable, disable } = useAdminPush(onEnabled);
   const [info, setInfo] = useState<AdminPushInfo | null>(null);
   const [testing, setTesting] = useState(false);
+  const [checks, setChecks] = useState<SetupCheck[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const runCheck = async () => { setChecking(true); setChecks(await checkAdminPushSetup(adminToken, state === "on")); setChecking(false); };
   const load = useCallback(() => { adminPushInfo(adminToken).then(setInfo).catch(() => undefined); }, [adminToken]);
   useEffect(() => { load(); }, [load, state]);
 
@@ -103,6 +106,26 @@ export function AdminAlertsCard({ onEnabled }: { onEnabled?: () => void }) {
           }}>
           {testing ? "Sending…" : "Send a test alert"}
         </button>
+      )}
+
+      {REMOTE && (
+        <div className="mt-4 pt-4 border-t border-ramady/50">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">Not getting alerts?</p>
+            <button className="btn h-9 px-4 text-xs border border-ramady" disabled={checking} onClick={runCheck}>{checking ? "Checking…" : "Check setup"}</button>
+          </div>
+          {checks && (
+            <ul className="mt-3 space-y-2 text-sm">
+              {checks.map((c) => (
+                <li key={c.label} className="flex gap-2">
+                  {c.ok ? <Check size={16} className="text-zeyti-dark shrink-0 mt-0.5" /> : <XIcon size={16} className="text-topy-dark shrink-0 mt-0.5" />}
+                  <div><p className={c.ok ? "" : "font-medium"}>{c.label}</p>{!c.ok && c.fix && <p className="text-xs text-stone">{c.fix}</p>}</div>
+                </li>
+              ))}
+              {checks.every((c) => c.ok) && <li className="text-xs text-zeyti-dark">Everything is connected. Send a test alert to confirm on this device.</li>}
+            </ul>
+          )}
+        </div>
       )}
 
       {REMOTE && info && !info.configured && (

@@ -426,7 +426,7 @@ function pushConfig_() {
 function adminPushInfo_(admin) {
   const c = pushConfig_();
   return {
-    configured: !!(c.url && c.secret),
+    configured: !!(c.url && c.secret), hasUrl: !!c.url, hasSecret: !!c.secret, pushUrl: c.url,
     devices: adminDevices_().map((d) => ({ id: d.id, adminName: d.adminName, device: d.device, createdAt: d.createdAt, mine: d.adminId === admin.id })),
   };
 }
