@@ -79,13 +79,19 @@ export function useOrderAlerts(onOpen: (id: string) => void) {
     try { pushOn = mode === "sheets" && localStorage.getItem("athar:admin-push") === "1"; } catch { /* ignore */ }
     if (permission === "granted" && !pushOn) {
       fresh.forEach((o) => {
-        try {
-          const n = new Notification("طلب جديد من أثر! 🛒", {
-            body: `تم استلام أوردر جديد بقيمة ${o.total.toLocaleString("en-US")} ج.م. اضغط للمراجعة وتأكيد التحويل.`,
-            tag: o.id,
-          });
-          n.onclick = () => { window.focus(); onOpen(o.id); n.close(); };
-        } catch { /* notifications blocked in this context */ }
+        const title = "طلب جديد من أثر! 🛒";
+        const body = `تم استلام أوردر جديد بقيمة ${Number(o.total || 0).toLocaleString("en-US")} ج.م. اضغط للمراجعة وتأكيد التحويل.`;
+        // Phones (iPhone especially) only allow notifications through the service worker
+        const viaWorker = "serviceWorker" in navigator
+          ? navigator.serviceWorker.getRegistration().then((r) => r ? r.showNotification(title, { body, tag: "new-order-" + o.number, icon: "/icon-192.png", data: { url: "/admin/orders?o=" + o.id } }).then(() => true) : false)
+          : Promise.resolve(false);
+        viaWorker.catch(() => false).then((shown) => {
+          if (shown) return;
+          try {
+            const n = new Notification(title, { body, tag: o.id });
+            n.onclick = () => { window.focus(); onOpen(o.id); n.close(); };
+          } catch { /* notifications not available here */ }
+        });
       });
     }
   }, [db.orders, ready, sound, permission, chime, onOpen]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -9,6 +9,13 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <script>
+      // The admin installs as its own Home Screen app that opens on /admin. Decided before the page loads, never swapped later.
+      if (location.pathname.indexOf("/admin") === 0) {
+        document.querySelector('link[rel="manifest"]').setAttribute("href", "/admin.webmanifest");
+        document.write('<meta name="apple-mobile-web-app-title" content="ATHAR Admin"><meta name="robots" content="noindex, nofollow">');
+      }
+    </script>
     <meta name="theme-color" content="#E8E1D6" />
     <meta name="description" content="ATHAR (أثر) — More Than Just Products. Egyptian-made posters, sleeves, flags, phone cases, sunshades and umbrellas." />
   </head>

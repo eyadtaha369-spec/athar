@@ -193,32 +193,11 @@ function AlertBanner({ al, onOpen }: { al: Alerts; onOpen: (id: string) => void 
   );
 }
 
-/**
- * While the admin is open: keep it out of search engines, and point "Add to Home Screen"
- * at an app that opens straight to /admin (the storefront has no admin link).
- */
-function useAdminHead() {
-  useEffect(() => {
-    const head = document.head;
-    const robots = document.createElement("meta");
-    robots.name = "robots"; robots.content = "noindex, nofollow";
-    head.appendChild(robots);
-    const title = document.createElement("meta");
-    title.name = "apple-mobile-web-app-title"; title.content = "ATHAR Admin";
-    head.appendChild(title);
-    const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    const before = manifest?.getAttribute("href");
-    manifest?.setAttribute("href", "/admin.webmanifest");
-    return () => { robots.remove(); title.remove(); if (manifest && before) manifest.setAttribute("href", before); };
-  }, []);
-}
-
 export default function AdminLayout() {
   const { me, logout, db } = useStore();
   const go = useNavigate();
   const openOrder = useCallback((id: string) => go(`/admin/orders?o=${id}`), [go]);
   const al = useOrderAlerts(openOrder);
-  useAdminHead();
   if (!me) return <><Login /><Toast /></>;
   const pending = db.orders.filter((o) => o.status === "pending").length;
   const nav = [
