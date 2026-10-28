@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, ImageOff, Loader2, Search, X, ZoomIn } from "lucide-react";
 import { useStore } from "../lib/store";
 import { PageHead } from "./AdminLayout";
-import { STATUS_META, cx, depositOf, egp, fmtDate } from "../lib/utils";
+import { STATUS_META, cx, depositOf, egp, fmtDate, frameLabel } from "../lib/utils";
 import type { Order, OrderStatus } from "../lib/types";
 
 const TABS: (OrderStatus | "all")[] = ["all", "pending", "confirmed", "shipped", "delivered", "cancelled"];
@@ -163,7 +163,7 @@ function OrderDrawer({ o, onClose }: { o: Order; onClose: () => void }) {
             <ul className="divide-y divide-ramady/50 text-sm">
               {o.lines.map((l, i) => (
                 <li key={i} className="py-2.5 flex justify-between gap-3">
-                  <div><p>{l.qty} × {l.name}</p><p className="text-stone">{[l.variant, l.custom && `Custom text: “${l.custom}”`].filter(Boolean).join(" — ")}</p></div>
+                  <div><p>{l.qty} × {l.name}</p><p className="text-stone">{[l.variant, l.frame && <b key="f" className="text-fahmy">{frameLabel(l.frame)}</b>, l.custom && `Custom text: “${l.custom}”`].filter(Boolean).map((x, k) => <span key={k}>{k > 0 && " — "}{x}</span>)}</p></div>
                   <span className="tnum shrink-0">{egp(l.unitPrice * l.qty)}</span>
                 </li>
               ))}

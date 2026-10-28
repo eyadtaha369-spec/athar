@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { Product } from "../lib/types";
+import type { Frame, Product } from "../lib/types";
 import { CATEGORY_LABEL, cx, egp } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
@@ -62,6 +62,54 @@ export function ProductImage({ p, i = 0, className = "" }: { p: Product; i?: num
     <img src={img(src)} alt={p.name} className={cx("w-full h-full", className.includes("object-contain") ? "" : "object-cover", className)} loading="lazy" />
   ) : (
     <ImagePlaceholder title={p.name} label={CATEGORY_LABEL[p.category]?.en} className={className.replace("object-contain", "")} />
+  );
+}
+
+/** Poster proportions from a size label like "50×70 cm" (shown portrait). */
+export function posterRatio(label?: string) {
+  const m = /(\d+(?:\.\d+)?)\s*[×x*]\s*(\d+(?:\.\d+)?)/i.exec(label || "");
+  if (!m) return 4 / 5;
+  const a = Number(m[1]), b = Number(m[2]);
+  return Math.min(a, b) / Math.max(a, b);
+}
+
+const FRAME_STYLE: Record<Frame | "none", React.CSSProperties> = {
+  // moulding colour, a soft bevel inside, and the shadow the frame casts on the wall
+  black: { backgroundColor: "#151515", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08), inset 0 2px 3px rgba(255,255,255,.10), 0 18px 40px -14px rgba(0,0,0,.55), 0 4px 10px -4px rgba(0,0,0,.35)" },
+  white: { backgroundColor: "#F8F6F1", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08), inset 0 -2px 3px rgba(0,0,0,.06), 0 18px 40px -16px rgba(0,0,0,.35), 0 4px 10px -4px rgba(0,0,0,.18)" },
+  none: { backgroundColor: "rgba(0,0,0,0)", boxShadow: "0 14px 34px -18px rgba(0,0,0,.35)" },
+};
+
+/**
+ * Poster on a wall inside a black or white frame. Uses the admin's real framed photo for that colour
+ * when there is one; otherwise frames the design itself. Switching colours cross-fades.
+ */
+export function FramedPreview({ p, i = 0, frame, sizeLabel, className = "" }: { p: Product; i?: number; frame?: Frame; sizeLabel?: string; className?: string }) {
+  const photo = frame ? p.frameImages?.[frame] : undefined;
+  const ratio = posterRatio(sizeLabel);
+  const fw = `min(74cqw, calc(80cqh * ${ratio}))`; // frame width that fits the box both ways
+  return (
+    <div className={cx("relative w-full h-full overflow-hidden", className)} style={{ containerType: "size", background: "radial-gradient(120% 90% at 50% 20%, #EFE9DF 0%, #E2DACD 70%, #D9D0C2 100%)" }}>
+      <AnimatePresence initial={false}>
+        {photo ? (
+          <motion.img key={"photo-" + frame} src={img(photo)} alt={`${p.name}, ${frame} frame`} className="absolute inset-0 w-full h-full object-cover"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.45 }} />
+        ) : (
+          <motion.div key="mockup" className="absolute inset-0 grid place-items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.45 }}>
+            <div
+              role="img" aria-label={`${p.name}${frame ? `, ${frame} frame` : ""}`}
+              className="transition-[background-color,box-shadow,padding] duration-500 ease-out"
+              style={{ width: fw, aspectRatio: String(ratio), padding: frame ? `calc(${fw} * 0.045)` : "0px", ...FRAME_STYLE[frame ?? "none"] }}
+            >
+              {/* mat board, then the print */}
+              <div className="w-full h-full bg-[#FBFAF6] transition-[padding] duration-500" style={{ padding: frame ? `calc(${fw} * 0.07)` : "0px", boxShadow: frame ? "inset 0 1px 4px rgba(0,0,0,.18)" : "none" }}>
+                <div className="w-full h-full overflow-hidden"><ProductImage p={p} i={i} /></div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

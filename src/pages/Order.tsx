@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { useStore } from "../lib/store";
 import type { Order } from "../lib/types";
 import { PushToggle } from "../components/Push";
-import { DELIVERY_ETA, STATUS_META, cx, egp, fmtDate } from "../lib/utils";
+import { DELIVERY_ETA, STATUS_META, cx, egp, fmtDate, frameLabel } from "../lib/utils";
 
 const FLOW = ["pending", "confirmed", "shipped", "delivered"] as const;
 const FLOW_COPY: Record<string, string> = {
@@ -78,7 +78,7 @@ export function OrderDone() {
           <ul className="divide-y divide-ramady/50 text-[15px]">
             {o.lines.map((l, i) => (
               <li key={i} className="py-3 flex justify-between gap-4">
-                <div className="min-w-0"><p>{l.qty} × {l.name}</p><p className="text-sm text-stone">{[l.variant, l.custom && `“${l.custom}”`].filter(Boolean).join(", ")}</p></div>
+                <div className="min-w-0"><p>{l.qty} × {l.name}</p><p className="text-sm text-stone">{[l.variant, l.frame && frameLabel(l.frame), l.custom && `“${l.custom}”`].filter(Boolean).join(", ")}</p></div>
                 <span className="tnum shrink-0">{egp(l.unitPrice * l.qty)}</span>
               </li>
             ))}

@@ -1,3 +1,13 @@
+import type { Frame, Product } from "./types";
+
+/** Posters & Wall Art come framed; the customer must pick the frame finish. */
+export const FRAMES: { id: Frame; en: string; ar: string }[] = [
+  { id: "black", en: "Black frame", ar: "إطار أسود" },
+  { id: "white", en: "White frame", ar: "إطار أبيض" },
+];
+export const hasFrames = (p: Pick<Product, "category">) => p.category === "posters";
+export const frameLabel = (f?: Frame) => { const x = FRAMES.find((y) => y.id === f); return x ? `${x.en} · ${x.ar}` : ""; };
+
 export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
 

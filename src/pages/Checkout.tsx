@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ImageUp, Landmark, Smartphone, Wallet, X } from "lucide-react";
 import { linePrice, useStore } from "../lib/store";
 import { linkOrderToPush } from "../lib/push";
-import { CopyRow, FreeDeliveryBar, ProductImage } from "../components/ui";
-import { DELIVERY_ETA, GOVERNORATES, compressImage, cx, egp, shippingFee } from "../lib/utils";
+import { CopyRow, FramedPreview, FreeDeliveryBar, ProductImage } from "../components/ui";
+import { DELIVERY_ETA, GOVERNORATES, compressImage, cx, egp, frameLabel, hasFrames, shippingFee } from "../lib/utils";
 import type { PayMethod } from "../lib/types";
 
 const PHONE = /^01[0125]\d{8}$/;
@@ -74,6 +74,8 @@ export default function Checkout() {
     if (!receipt) er.receipt = "Upload a screenshot of your deposit transfer to place the order.";
     const short = rows.find(({ c, p }) => c.qty > p.stock);
     if (short) er.stock = `Only ${short.p.stock} of ${short.p.name} left. Lower the quantity in your bag to continue.`;
+    const noFrame = rows.find(({ c, p }) => hasFrames(p) && !c.frame);
+    if (noFrame) er.stock = `Choose a black or white frame for ${noFrame.p.name}: open it from your bag, pick the frame and add it again.`;
     setErrors(er);
     if (Object.keys(er).length) {
       const first = document.querySelector(`[data-field="${Object.keys(er)[0]}"]`);
@@ -88,7 +90,7 @@ export default function Checkout() {
       shipping: { governorate: f.governorate, city: f.city.trim(), address: f.address.trim(), notes: f.notes.trim() || undefined },
       lines: rows.map(({ c, p }) => ({
         productId: p.id, name: p.name, variantId: c.variantId, variant: p.variants.find((v) => v.id === c.variantId)?.label,
-        custom: c.custom, unitPrice: linePrice(p, c.variantId), qty: c.qty,
+        custom: c.custom, frame: hasFrames(p) ? c.frame : undefined, unitPrice: linePrice(p, c.variantId), qty: c.qty,
       })),
       subtotal, shippingFee: fee ?? 0, total,
       payment: { method, receipt, deposit, senderName: f.sender.trim(), reference: f.reference.trim() || undefined },
@@ -281,12 +283,12 @@ export default function Checkout() {
             {rows.map(({ c, p }) => (
               <li key={c.key} className="py-3 flex gap-3">
                 <div className="relative w-14 h-[70px] rounded-lg overflow-hidden bg-ramly shrink-0">
-                  <ProductImage p={p} text={c.custom} />
+                  {hasFrames(p) && c.frame ? <FramedPreview p={p} frame={c.frame} sizeLabel={p.variants.find((v) => v.id === c.variantId)?.label} /> : <ProductImage p={p} text={c.custom} />}
                   <span className="absolute -top-0 -right-0 tnum text-[11px] bg-fahmy text-sand rounded-bl-lg px-1.5">{c.qty}</span>
                 </div>
                 <div className="flex-1 min-w-0 text-sm">
                   <p className="font-medium">{p.name}</p>
-                  <p className="text-stone truncate">{[p.variants.find((v) => v.id === c.variantId)?.label, c.custom && `“${c.custom}”`].filter(Boolean).join(", ")}</p>
+                  <p className="text-stone truncate">{[p.variants.find((v) => v.id === c.variantId)?.label, c.frame && frameLabel(c.frame), c.custom && `“${c.custom}”`].filter(Boolean).join(", ")}</p>
                 </div>
                 <span className="text-sm tnum shrink-0">{egp(linePrice(p, c.variantId) * c.qty)}</span>
               </li>

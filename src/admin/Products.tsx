@@ -6,8 +6,8 @@ import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
 import { SIZE_PRESETS, fromPrice, presetVariants } from "../lib/pricing";
 import { Forbidden, PageHead, can } from "./AdminLayout";
-import { ProductImage } from "../components/ui";
-import { CATEGORY_LABEL, compressImage, cx, egp, uid } from "../lib/utils";
+import { FramedPreview, ProductImage } from "../components/ui";
+import { CATEGORY_LABEL, FRAMES, compressImage, cx, egp, hasFrames, uid } from "../lib/utils";
 import type { ArtKind, Category, Product } from "../lib/types";
 
 const ART_FOR: Record<Category, ArtKind> = { posters: "pyramids", sleeves: "sleeve", flags: "flag", cases: "case", sunshades: "sunshade" };
@@ -102,6 +102,39 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
             </div>
             <E k="images" />
           </section>
+
+          {hasFrames(p) && (
+            <section>
+              <p className="label">Framed photos <span className="text-stone/70">(optional)</span></p>
+              <p className="text-xs text-stone mb-3">Customers must pick a black or white frame. Without a photo here, the site frames your design automatically.</p>
+              <div className="grid grid-cols-2 gap-3 max-w-[420px]">
+                {FRAMES.map((f) => {
+                  const src = p.frameImages?.[f.id];
+                  return (
+                    <div key={f.id}>
+                      <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-ramly">
+                        <FramedPreview p={p} frame={f.id} sizeLabel={p.variants[0]?.label} />
+                        {!src && <span className="absolute inset-x-0 bottom-0 text-[11px] text-center bg-fahmy/70 text-sand py-1">Automatic preview</span>}
+                        {src && (
+                          <button type="button" onClick={() => up("frameImages", { ...p.frameImages, [f.id]: undefined })}
+                            className="absolute right-2 bottom-2 w-7 h-7 grid place-items-center bg-sand rounded-full" aria-label={`Remove ${f.en} photo`}><X size={13} /></button>
+                        )}
+                      </div>
+                      <label className="mt-2 flex items-center justify-between gap-2 text-sm cursor-pointer">
+                        <span>{f.en} <span className="text-stone" lang="ar">· {f.ar}</span></span>
+                        <span className="text-topy-dark underline underline-offset-2">{src ? "Replace" : "Upload"}</span>
+                        <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          try { const data = await compressImage(file, 1200, 0.82); up("frameImages", { ...p.frameImages, [f.id]: data }); }
+                          catch (er) { setErr((x) => ({ ...x, images: (er as Error).message })); }
+                        }} />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <section className="grid sm:grid-cols-2 gap-4">
             <div><label htmlFor="pe-name" className="label">Name (English)</label><input id="pe-name" className="field" value={p.name} onChange={(e) => up("name", e.target.value)} /><E k="name" /></div>

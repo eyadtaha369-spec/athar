@@ -81,7 +81,13 @@ const ROUTES = {
       const v = (p.variants || []).find((x) => x.id === l.variantId) || (p.variants || []).find((x) => x.label === l.variant);
       const qty = Math.max(1, Math.floor(Number(l.qty) || 1));
       if (p.stock < qty) throw new Error("Only " + p.stock + " of " + p.name + " left. Lower the quantity in your bag.");
-      return { productId: p.id, name: p.name, variantId: v ? v.id : undefined, variant: v ? v.label : undefined, custom: l.custom ? String(l.custom).slice(0, 60) : undefined, unitPrice: v ? v.price : p.price, qty: qty };
+      // Posters & Wall Art are always framed: black or white
+      let frame;
+      if (p.category === "posters") {
+        if (l.frame !== "black" && l.frame !== "white") throw new Error("Choose a black or white frame for " + p.name + ".");
+        frame = l.frame;
+      }
+      return { productId: p.id, name: p.name, variantId: v ? v.id : undefined, variant: v ? v.label : undefined, custom: l.custom ? String(l.custom).slice(0, 60) : undefined, frame: frame, unitPrice: v ? v.price : p.price, qty: qty };
     });
     const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
     const gov = String((o.shipping && o.shipping.governorate) || "");
@@ -429,7 +435,7 @@ function listOrders_() {
 }
 
 function writeOrder_(o) {
-  const items = o.lines.map((l) => l.qty + "× " + l.name + (l.variant ? " (" + l.variant + ")" : "") + (l.custom ? " “" + l.custom + "”" : "")).join("\n");
+  const items = o.lines.map((l) => l.qty + "× " + l.name + (l.variant ? " (" + l.variant + ")" : "") + (l.frame ? " [" + (l.frame === "black" ? "Black frame · إطار أسود" : "White frame · إطار أبيض") + "]" : "") + (l.custom ? " “" + l.custom + "”" : "")).join("\n");
   upsert_(SHEET.orders, o.id, [o.id, o.number, o.createdAt, o.status, o.customer.name, "'" + o.customer.phone, o.shipping.governorate, o.shipping.city, o.shipping.address,
     items, o.total, o.payment.deposit, o.payment.verifiedDeposit == null ? "" : o.payment.verifiedDeposit, o.codDue, o.payment.method, o.paymentVerified ? "yes" : "no",
     String(o.payment.receipt || "").replace("drive:", "https://drive.google.com/file/d/") + (String(o.payment.receipt || "").indexOf("drive:") === 0 ? "/view" : ""), JSON.stringify(o)]);
@@ -586,7 +592,7 @@ function sha256_(text) {
 function notifyOwner_(o) {
   const to = PropertiesService.getScriptProperties().getProperty("NOTIFY_EMAIL");
   if (!to) return;
-  const items = o.lines.map((l) => "<li>" + l.qty + " × " + l.name + (l.variant ? " (" + l.variant + ")" : "") + " — " + l.unitPrice * l.qty + " EGP</li>").join("");
+  const items = o.lines.map((l) => "<li>" + l.qty + " × " + l.name + (l.variant ? " (" + l.variant + ")" : "") + (l.frame ? " — <b>" + (l.frame === "black" ? "Black frame" : "White frame") + "</b>" : "") + " — " + l.unitPrice * l.qty + " EGP</li>").join("");
   const adminUrl = PropertiesService.getScriptProperties().getProperty("ADMIN_URL");
   try {
     MailApp.sendEmail({

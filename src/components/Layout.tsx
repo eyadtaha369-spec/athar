@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { FreeDeliveryBar, IconMark, Lockup, Logo, Mark, ProductImage, Toast, Wordmark } from "./ui";
+import { FramedPreview, FreeDeliveryBar, IconMark, Lockup, Logo, Mark, ProductImage, Toast, Wordmark } from "./ui";
 import Preloader from "./Preloader";
 import { PushPrompt, PushToggle } from "./Push";
 import { registerServiceWorker } from "../lib/push";
 import { linePrice, useStore } from "../lib/store";
-import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp } from "../lib/utils";
+import { CATEGORY_LABEL, DELIVERY_ETA, cx, egp, frameLabel, hasFrames } from "../lib/utils";
 
 const NAV = [
   { to: "/shop", label: "Shop all" },
@@ -129,13 +129,15 @@ function CartDrawer() {
                     const v = p!.variants.find((x) => x.id === c.variantId);
                     return (
                       <li key={c.key} className="py-5 flex gap-4">
-                        <div className="w-20 h-24 rounded-lg overflow-hidden bg-ramly shrink-0"><ProductImage p={p!} text={c.custom} /></div>
+                        <div className="w-20 h-24 rounded-lg overflow-hidden bg-ramly shrink-0">{hasFrames(p!) && c.frame ? <FramedPreview p={p!} frame={c.frame} sizeLabel={v?.label} /> : <ProductImage p={p!} text={c.custom} />}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between gap-3">
                             <p className="font-medium leading-snug">{p!.name}</p>
                             <p className="tnum shrink-0">{egp(linePrice(p!, c.variantId) * c.qty)}</p>
                           </div>
                           {v && <p className="text-sm text-stone">{v.label}</p>}
+                          {c.frame && <p className="text-sm text-stone">{frameLabel(c.frame)}</p>}
+                          {hasFrames(p!) && !c.frame && <Link to={`/p/${p!.slug}`} onClick={() => setCartOpen(false)} className="text-sm text-topy-dark underline">Choose a frame</Link>}
                           {c.custom && <p className="text-sm text-stone truncate">“{c.custom}”</p>}
                           <div className="mt-3 inline-flex items-center rounded-full border border-ramady">
                             <button className="w-9 h-9 grid place-items-center" onClick={() => setQty(c.key, c.qty - 1)} aria-label="Decrease quantity"><Minus size={14} /></button>

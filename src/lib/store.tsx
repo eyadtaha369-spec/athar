@@ -309,7 +309,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     cartOpen,
     setCartOpen,
     addToCart: (i) => {
-      const key = [i.productId, i.variantId ?? "", i.custom ?? ""].join("|");
+      const key = [i.productId, i.variantId ?? "", i.custom ?? "", i.frame ?? ""].join("|");
       setCart((c) => {
         const ex = c.find((x) => x.key === key);
         return ex ? c.map((x) => (x.key === key ? { ...x, qty: x.qty + i.qty } : x)) : [...c, { ...i, key }];
@@ -436,6 +436,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (p.images.some((s) => String(s).startsWith("data:"))) {
           const images = await Promise.all(p.images.map((s) => (String(s).startsWith("data:") ? call<string>("uploadImage", { dataUrl: s }, token) : Promise.resolve(s))));
           p = { ...p, images };
+          put(p);
+        }
+        const fi = p.frameImages || {};
+        if (Object.values(fi).some((s) => String(s || "").startsWith("data:"))) {
+          const next: NonNullable<Product["frameImages"]> = {};
+          for (const [k, v] of Object.entries(fi)) {
+            if (!v) continue;
+            next[k as keyof typeof next] = String(v).startsWith("data:") ? await call<string>("uploadImage", { dataUrl: v }, token) : v;
+          }
+          p = { ...p, frameImages: next };
           put(p);
         }
         await call("saveProduct", { product: p }, token);

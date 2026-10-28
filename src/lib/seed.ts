@@ -16,8 +16,8 @@ const posterSizes = [
 const posterDetails = [
   "Printed on 250gsm matte art paper",
   "Fade-resistant pigment inks",
-  "Ships rolled in a kraft tube",
-  "Frame not included",
+  "Comes framed in black or white, ready to hang",
+  "Ships in a corner-protected box",
 ];
 const phoneModels = [
   { id: "ip15", label: "iPhone 15 / 15 Pro", priceDelta: 0 },

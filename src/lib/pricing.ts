@@ -64,7 +64,14 @@ export function normalizeProduct(p: any): Product {
   // Sheet rows edited by hand can hold odd values; keep only usable photo links
   const images = (Array.isArray(p.images) ? p.images : p.images ? [p.images] : []).map(imageRef).filter(Boolean);
   return { ...p, id: String(p.id), name: String(p.name ?? ""), description: String(p.description ?? ""), category: String(p.category ?? ""),
-    images, details: Array.isArray(p.details) ? p.details.map(String) : [], variants, price: fromPrice(variants, p.price ?? 0) };
+    frameImages: p.frameImages && typeof p.frameImages === "object"
+      ? Object.fromEntries(Object.entries(p.frameImages).map(([k, v]) => [k, imageRef(v)]).filter(([k, v]) => (k === "black" || k === "white") && v))
+      : undefined,
+    images, details: (Array.isArray(p.details) ? p.details.map(String) : []).map((d: string) =>
+      // posters now always come framed; older catalog text said otherwise
+      p.category !== "posters" ? d
+        : /frame not included/i.test(d) ? "Comes framed in black or white, ready to hang"
+        : /rolled in a (kraft )?tube/i.test(d) ? "Ships in a corner-protected box" : d), variants, price: fromPrice(variants, p.price ?? 0) };
 }
 
 /** Applies the size price list to every product in a category that has one. */

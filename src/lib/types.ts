@@ -4,6 +4,8 @@ export type ArtKind =
   | "pyramids" | "karnak" | "nile" | "hieroglyph" | "sun" | "abstract"
   | "sleeve" | "flag" | "case" | "sunshade" | "umbrella";
 
+export type Frame = "black" | "white";
+
 export interface Variant { id: string; label: string; price: number }   // price = final customer selling price (EGP)
 
 export interface Product {
@@ -24,6 +26,7 @@ export interface Product {
   variantLabel?: string;  // e.g. "Size", "Phone model"
   customText?: string;    // label for a personalisation field, if any
   images: string[];       // uploaded data URLs (or storage URLs)
+  frameImages?: Partial<Record<Frame, string>>; // posters: optional real photos of the framed piece
   art: ArtKind;           // generated artwork when no image uploaded
   palette: [string, string, string];
   createdAt: string;
@@ -34,6 +37,7 @@ export interface CartItem {
   productId: string;
   variantId?: string;
   custom?: string;
+  frame?: Frame;          // posters: black or white frame
   qty: number;
 }
 
@@ -46,6 +50,7 @@ export interface OrderLine {
   variantId?: string;
   variant?: string;
   custom?: string;
+  frame?: Frame;
   unitPrice: number;
   qty: number;
 }
