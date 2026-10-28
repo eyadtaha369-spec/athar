@@ -18,7 +18,7 @@ const METHOD: Record<string, string> = { instapay: "InstaPay", wallet: "Mobile w
 /** Deposit receipt. In Google Sheets mode the image is fetched from Drive on demand and cached. */
 function ReceiptImg({ o, className = "", alt = "" }: { o: Order; className?: string; alt?: string }) {
   const { getReceipt } = useStore();
-  const [src, setSrc] = useState<string | null>(o.payment.receipt?.startsWith("data:") ? o.payment.receipt : null);
+  const [src, setSrc] = useState<string | null>(String(o.payment.receipt ?? "").startsWith("data:") ? o.payment.receipt : null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (src) return;

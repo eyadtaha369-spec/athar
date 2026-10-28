@@ -1,3 +1,4 @@
+import { imageRef } from "./assets";
 import type { Category, Product, Variant } from "./types";
 
 /**
@@ -60,7 +61,10 @@ export function normalizeProduct(p: any): Product {
   const variants: Variant[] = (p.variants ?? []).map((v: { id: string; label: string; price?: number; priceDelta?: number }) => ({
     id: v.id, label: v.label, price: typeof v.price === "number" ? v.price : (p.price ?? 0) + (v.priceDelta ?? 0),
   }));
-  return { ...p, variants, price: fromPrice(variants, p.price ?? 0) };
+  // Sheet rows edited by hand can hold odd values; keep only usable photo links
+  const images = (Array.isArray(p.images) ? p.images : p.images ? [p.images] : []).map(imageRef).filter(Boolean);
+  return { ...p, id: String(p.id), name: String(p.name ?? ""), description: String(p.description ?? ""), category: String(p.category ?? ""),
+    images, details: Array.isArray(p.details) ? p.details.map(String) : [], variants, price: fromPrice(variants, p.price ?? 0) };
 }
 
 /** Applies the size price list to every product in a category that has one. */

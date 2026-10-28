@@ -17,4 +17,10 @@ export const ASSETS: Record<string, string> = {
   "brand/wordmark": a_brand_wordmark,
 };
 
-export const img = (src?: string) => (src && src.startsWith("asset:") ? ASSETS[src.slice(6)] ?? "" : src ?? "");
+/** Turns a stored image reference into a URL. Tolerates bad values from the sheet (numbers, objects, empty cells). */
+export const imageRef = (v: unknown): string => {
+  if (typeof v === "string") return v.trim();
+  if (v && typeof v === "object") { const o = v as { url?: unknown; src?: unknown }; return imageRef(o.url ?? o.src ?? ""); }
+  return "";
+};
+export const img = (src?: unknown) => { const s = imageRef(src); return s.startsWith("asset:") ? ASSETS[s.slice(6)] ?? "" : s; };

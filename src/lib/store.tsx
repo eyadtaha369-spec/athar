@@ -415,7 +415,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     getReceipt: (o) => {
       const ref = o.payment.receipt || "";
-      if (!REMOTE || ref.startsWith("data:")) return Promise.resolve(ref);
+      if (!REMOTE || String(ref).startsWith("data:")) return Promise.resolve(ref);
       const hit = receipts.current.get(o.id);
       if (hit) return hit;
       const p = call<string>("getReceipt", { orderId: o.id }, token);
@@ -433,8 +433,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!REMOTE) return;
       await enqueue(async () => {
         // photos go to Google Drive; the sheet stores their links
-        if (p.images.some((s) => s.startsWith("data:"))) {
-          const images = await Promise.all(p.images.map((s) => (s.startsWith("data:") ? call<string>("uploadImage", { dataUrl: s }, token) : Promise.resolve(s))));
+        if (p.images.some((s) => String(s).startsWith("data:"))) {
+          const images = await Promise.all(p.images.map((s) => (String(s).startsWith("data:") ? call<string>("uploadImage", { dataUrl: s }, token) : Promise.resolve(s))));
           p = { ...p, images };
           put(p);
         }
