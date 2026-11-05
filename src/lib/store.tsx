@@ -36,6 +36,10 @@ const CART_KEY = "athar:cart:v2";
 const SESSION_KEY = "athar:admin-session";
 const TOKEN_KEY = "athar:admin-token";
 const CATALOG_KEY = "athar:catalog-cache";
+// Product saves/deletes waiting for the server. Kept on the device so closing the app or a dropped
+// connection never loses an admin's work; retried automatically when the admin is back online.
+const OUTBOX_KEY = "athar:product-outbox";
+type OutboxItem = { id: string; op: "save" | "delete"; product?: Product; at: string; error?: string };
 const MY_ORDERS_KEY = "athar:my-orders";
 const POLL_MS = 12000;
 
@@ -69,6 +73,19 @@ const safeSet = (k: string, v: string, s: Storage = localStorage) => { try { s.s
 const safeDel = (k: string, s: Storage = localStorage) => { try { s.removeItem(k); } catch { /* ignore */ } };
 const readJSON = <T,>(k: string, fallback: T, s: Storage = localStorage): T => { try { return JSON.parse(safeGet(k, s) || "") as T; } catch { return fallback; } };
 
+/** Shows this device's not-yet-confirmed product changes on top of the server copy. */
+const withPending = (products: Product[]) => {
+  let out = products;
+  readJSON<OutboxItem[]>(OUTBOX_KEY, []).forEach((o) => {
+    if (o.op === "delete") out = out.filter((p) => p.id !== o.id);
+    else if (o.product) {
+      const p = normalizeProduct(o.product);
+      out = out.some((x) => x.id === o.id) ? out.map((x) => (x.id === o.id ? p : x)) : [p, ...out];
+    }
+  });
+  return out;
+};
+
 const normalizeOrder = (o: Order): Order => ({ ...o, codDue: o.codDue ?? 0, payment: { ...o.payment, deposit: o.payment.deposit ?? o.total } });
 const withSettings = (s?: Partial<Settings>): Settings => ({ ...SEED_SETTINGS, ...(s || {}), minDeposit: s?.minDeposit ?? SEED_SETTINGS.minDeposit });
 
@@ -97,8 +114,12 @@ interface Ctx {
   lastSync: number | null;
   syncError: string | null;
   getReceipt: (o: Order) => Promise<string>;
-  saveProduct: (p: Product) => Promise<void>;
-  deleteProduct: (id: string) => void;
+  /** Resolves only once the product is stored on the server; rejects with the reason otherwise. */
+  saveProduct: (p: Product, onStep?: (msg: string) => void) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  /** Product changes made on this device that the server hasn't confirmed yet. */
+  pendingProducts: { id: string; name: string; op: "save" | "delete"; error?: string }[];
+  retryPendingProducts: () => Promise<void>;
   setOrderStatus: (id: string, s: OrderStatus, note?: string) => void;
   verifyPayment: (id: string, v: boolean, amount?: number) => void;
   addAdmin: (a: { name: string; email: string; role: AdminUser["role"]; password: string }) => Promise<string | null>;
@@ -172,7 +193,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (REMOTE) {
         const cached = readJSON<{ products: Product[]; settings: Settings } | null>(CATALOG_KEY, null);
         const base = (c: { products: Product[]; settings: Settings }): DB => ({
-          products: c.products.filter(liveCategory).map(normalizeProduct), settings: withSettings(c.settings), orders: [], admins: [], notices: [], seq: 0,
+          products: withPending(c.products.filter(liveCategory).map(normalizeProduct)), settings: withSettings(c.settings), orders: [], admins: [], notices: [], seq: 0,
         });
         if (cached) { dbRef.current = base(cached); setDb(dbRef.current); }
         try {
@@ -267,6 +288,152 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const me = useMemo(() => (REMOTE ? remoteMe : db?.admins.find((a) => a.id === meId) ?? null), [db, meId, remoteMe]);
 
   /* ---------- push ---------- */
+  /* ---------- products: saved to the server for real, with an on-device outbox ---------- */
+  const [outbox, setOutbox] = useState<OutboxItem[]>(() => (REMOTE ? readJSON<OutboxItem[]>(OUTBOX_KEY, []) : []));
+  const writeOutbox = useCallback((f: (o: OutboxItem[]) => OutboxItem[]) => {
+    setOutbox((cur) => {
+      const next = f(cur);
+      // photos not uploaded yet can be large; if the device is full keep the list without them
+      if (!safeSet(OUTBOX_KEY, JSON.stringify(next))) safeSet(OUTBOX_KEY, JSON.stringify(next.map((o) => (o.product ? { ...o, product: { ...o.product, images: o.product.images.filter((x) => !String(x).startsWith("data:")) } } : o))));
+      return next;
+    });
+  }, []);
+
+  const putProduct = useCallback((x: Product) => commit((d) => ({
+    ...d, products: d.products.some((y) => y.id === x.id) ? d.products.map((y) => (y.id === x.id ? x : y)) : [x, ...d.products],
+  })), [commit]);
+
+  /** Pull the catalog back from the server so every screen shows what is really stored. */
+  const syncCatalog = useCallback(async () => {
+    const c = await call<{ products: Product[]; settings: Settings }>("catalog");
+    safeSet(CATALOG_KEY, JSON.stringify(c));
+    commit((d) => ({ ...d, products: withPending(c.products.filter(liveCategory).map(normalizeProduct)), settings: withSettings(c.settings) }));
+  }, [commit]);
+
+  const uploadPhotos = async (p: Product, onStep?: (m: string) => void): Promise<Product> => {
+    const pending = [...p.images, ...Object.values(p.frameImages || {})].filter((x) => String(x || "").startsWith("data:")).length;
+    let done = 0;
+    const up = async (v: string) => {
+      if (!String(v).startsWith("data:")) return v;
+      onStep?.(`Uploading photo ${++done} of ${pending}…`);
+      return call<string>("uploadImage", { dataUrl: v }, token);
+    };
+    const images: string[] = [];
+    for (const v of p.images) images.push(await up(v)); // one at a time: kinder to phone connections
+    let frameImages = p.frameImages;
+    if (frameImages) {
+      const next: NonNullable<Product["frameImages"]> = {};
+      for (const [k, v] of Object.entries(frameImages)) if (v) next[k as keyof typeof next] = await up(v);
+      frameImages = next;
+    }
+    return { ...p, images, frameImages };
+  };
+
+  const runProductJob = async (item: OutboxItem, onStep?: (m: string) => void) => {
+    inFlight.current.add(item.id);
+    try { await runProductJobInner(item, onStep); } finally { inFlight.current.delete(item.id); }
+  };
+  const runProductJobInner = async (item: OutboxItem, onStep?: (m: string) => void) => {
+    if (item.op === "delete") {
+      onStep?.("Deleting…");
+      await call("deleteProduct", { id: item.id }, token);
+      return;
+    }
+    let p = item.product!;
+    p = await uploadPhotos(p, onStep);
+    // remember the uploaded links right away, so a retry doesn't upload the same photos again
+    writeOutbox((o) => o.map((x) => (x.id === item.id && x.op === "save" ? { ...x, product: p } : x)));
+    putProduct(p);
+    onStep?.("Saving to the store…");
+    const saved = await call<Product>("saveProduct", { product: p }, token);
+    if (!saved || saved.id !== p.id) throw new ApiError("The store didn't confirm the save. Try again.");
+  };
+
+  const productQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const inFlight = useRef(new Set<string>());
+  const serial = <T,>(job: () => Promise<T>): Promise<T> => {
+    const run = productQueue.current.then(job, job);
+    productQueue.current = run.catch(() => undefined);
+    return run;
+  };
+
+  const saveProductNow = async (raw: Product, onStep?: (m: string) => void) => {
+    const p: Product = { ...raw, price: fromPrice(raw.variants, raw.price) };
+    putProduct(p);
+    if (!REMOTE) return;
+    const item: OutboxItem = { id: p.id, op: "save", product: p, at: new Date().toISOString() };
+    writeOutbox((o) => [...o.filter((x) => x.id !== p.id), item]);
+    await serial(async () => {
+      try {
+        await runProductJob(item, onStep);
+        writeOutbox((o) => o.filter((x) => !(x.id === p.id && x.at === item.at)));
+      } catch (err) {
+        const e = err as ApiError;
+        writeOutbox((o) => o.map((x) => (x.id === p.id ? { ...x, error: e.message } : x)));
+        if (e.code === "auth") signOutLocal();
+        throw e;
+      }
+    });
+    syncCatalog().catch(() => undefined);
+  };
+
+  const deleteProductNow = async (id: string) => {
+    commit((d) => ({ ...d, products: d.products.filter((p) => p.id !== id) }));
+    if (!REMOTE) return;
+    const item: OutboxItem = { id, op: "delete", at: new Date().toISOString() };
+    writeOutbox((o) => [...o.filter((x) => x.id !== id), item]);
+    await serial(async () => {
+      try {
+        await runProductJob(item);
+        writeOutbox((o) => o.filter((x) => !(x.id === id && x.at === item.at)));
+      } catch (err) {
+        const e = err as ApiError;
+        writeOutbox((o) => o.map((x) => (x.id === id ? { ...x, error: e.message } : x)));
+        if (e.code === "auth") signOutLocal();
+        throw e;
+      }
+    });
+    syncCatalog().catch(() => undefined);
+  };
+
+  /** Re-send everything still waiting (after sign-in, when the connection is back, or from the banner). */
+  const flushing = useRef(false);
+  const flushOutbox = useCallback(async () => {
+    if (!REMOTE || !token || flushing.current) return;
+    const items = readJSON<OutboxItem[]>(OUTBOX_KEY, []);
+    if (!items.length) return;
+    flushing.current = true;
+    try {
+      for (let item of items) {
+        if (inFlight.current.has(item.id)) continue; // already being sent from the editor
+        await serial(async () => {
+          // use the newest copy (photos may have been uploaded since the list was read)
+          const latest = readJSON<OutboxItem[]>(OUTBOX_KEY, []).find((x) => x.id === item.id);
+          if (!latest) return; // finished meanwhile
+          item = latest;
+          try {
+            await runProductJob(item);
+            writeOutbox((o) => o.filter((x) => !(x.id === item.id && x.at === item.at)));
+          } catch (err) {
+            const e = err as ApiError;
+            writeOutbox((o) => o.map((x) => (x.id === item.id ? { ...x, error: e.message } : x)));
+            if (e.code === "auth") { signOutLocal(); throw e; }
+          }
+        }).catch(() => undefined);
+      }
+      await syncCatalog().catch(() => undefined);
+    } finally { flushing.current = false; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  useEffect(() => {
+    if (!REMOTE || !remoteMe) return;
+    flushOutbox();
+    const online = () => flushOutbox();
+    window.addEventListener("online", online);
+    return () => window.removeEventListener("online", online);
+  }, [remoteMe, flushOutbox]);
+
   const sendPushNow = async (r: PushRequest): Promise<PushResult> => {
     if (REMOTE) {
       let res: Response;
@@ -424,37 +591,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return p;
     },
 
-    saveProduct: async (raw) => {
-      let p: Product = { ...raw, price: fromPrice(raw.variants, raw.price) };
-      const put = (x: Product) => commit((d) => ({
-        ...d, products: d.products.some((y) => y.id === x.id) ? d.products.map((y) => (y.id === x.id ? x : y)) : [x, ...d.products],
-      }));
-      put(p);
-      if (!REMOTE) return;
-      await enqueue(async () => {
-        // photos go to Google Drive; the sheet stores their links
-        if (p.images.some((s) => String(s).startsWith("data:"))) {
-          const images = await Promise.all(p.images.map((s) => (String(s).startsWith("data:") ? call<string>("uploadImage", { dataUrl: s }, token) : Promise.resolve(s))));
-          p = { ...p, images };
-          put(p);
-        }
-        const fi = p.frameImages || {};
-        if (Object.values(fi).some((s) => String(s || "").startsWith("data:"))) {
-          const next: NonNullable<Product["frameImages"]> = {};
-          for (const [k, v] of Object.entries(fi)) {
-            if (!v) continue;
-            next[k as keyof typeof next] = String(v).startsWith("data:") ? await call<string>("uploadImage", { dataUrl: v }, token) : v;
-          }
-          p = { ...p, frameImages: next };
-          put(p);
-        }
-        await call("saveProduct", { product: p }, token);
-      });
-    },
-    deleteProduct: (id) => {
-      commit((d) => ({ ...d, products: d.products.filter((p) => p.id !== id) }));
-      if (REMOTE) enqueue(() => call("deleteProduct", { id }, token));
-    },
+    saveProduct: (raw, onStep) => saveProductNow(raw, onStep),
+    deleteProduct: (id) => deleteProductNow(id),
+    pendingProducts: outbox.map((o) => ({ id: o.id, name: o.product?.name ?? dbRef.current?.products.find((p) => p.id === o.id)?.name ?? "Product", op: o.op, error: o.error })),
+    retryPendingProducts: () => flushOutbox(),
 
     setOrderStatus: (id, s, note) => {
       const r = updateOrder(id, (o) => {

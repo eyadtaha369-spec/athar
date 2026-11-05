@@ -83,6 +83,24 @@ function CreateOwner() {
   );
 }
 
+/** Product changes from this device that the server hasn't confirmed yet (closed app, lost signal, expired session). */
+function PendingProductsBanner() {
+  const { pendingProducts, retryPendingProducts } = useStore();
+  const [busy, setBusy] = useState(false);
+  if (!pendingProducts.length) return null;
+  const failed = pendingProducts.some((p) => p.error);
+  return (
+    <div className={cx("mb-6 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-3", failed ? "bg-[#F1DCD3]" : "bg-ramly")} role="status">
+      <div className="max-w-[70ch] text-sm">
+        <p className="font-semibold text-base">{pendingProducts.length === 1 ? "1 product change isn't saved yet" : `${pendingProducts.length} product changes aren't saved yet`}</p>
+        <p className="mt-1">{pendingProducts.map((p) => `${p.op === "delete" ? "Delete " : ""}${p.name}`).join(", ")}. It's kept on this device and sent as soon as the connection allows. Don't clear this browser's data until it's done.</p>
+        {failed && <p className="mt-1 text-topy-dark">Last try: {pendingProducts.find((p) => p.error)?.error}</p>}
+      </div>
+      <button className="btn-dark h-10 px-4" disabled={busy} onClick={async () => { setBusy(true); await retryPendingProducts(); setBusy(false); }}>{busy ? "Saving…" : "Save now"}</button>
+    </div>
+  );
+}
+
 /** Shown while someone is still signed in with the retired built-in account. */
 function LegacyAccountBanner() {
   const { me } = useStore();
@@ -254,6 +272,7 @@ export default function AdminLayout() {
         </header>
         <main className="gutter py-8 md:py-10 flex-1 max-w-[1400px] w-full">
           <LegacyAccountBanner />
+          <PendingProductsBanner />
           <AlertBanner al={al} onOpen={openOrder} />
           <AdminPushPrompt onEnabled={al.enableDesktop} />
           <Outlet />

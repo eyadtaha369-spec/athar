@@ -234,7 +234,29 @@ const ROUTES = {
     return "data:" + blob.getContentType() + ";base64," + Utilities.base64Encode(blob.getBytes());
   },
 
-  saveProduct: (b, admin) => { requireRole_(admin, ["owner", "admin"]); writeProduct_(b.product); return b.product; },
+  saveProduct: (b, admin) => {
+    requireRole_(admin, ["owner", "admin"]);
+    const p = b.product;
+    if (!p || !p.id || !String(p.name || "").trim()) throw new Error("The product needs a name.");
+    // Photos still embedded in the request (the upload step was skipped or failed) go to Drive here,
+    // so the sheet only ever stores links and never hits its 50,000-character cell limit.
+    const toLink = (v) => {
+      if (!String(v || "").startsWith("data:")) return v;
+      const f = saveDataUrl_(v, folder_("ATHAR Product Photos"), "product-" + Date.now());
+      f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return "https://lh3.googleusercontent.com/d/" + f.getId();
+    };
+    p.images = (p.images || []).map(toLink).filter(Boolean);
+    if (p.frameImages) Object.keys(p.frameImages).forEach((k) => { p.frameImages[k] = toLink(p.frameImages[k]); });
+    if (JSON.stringify(p).length > 48000) throw new Error("This product has too much text to save. Shorten the description or details.");
+    p.updatedAt = new Date().toISOString();
+    p.updatedBy = admin.name;
+    writeProduct_(p);
+    // read it back, so the dashboard only says "saved" when it really is in the sheet
+    const saved = listProducts_().find((x) => x.id === p.id);
+    if (!saved) throw new Error("The product didn't save. Try again.");
+    return saved;
+  },
 
   deleteProduct: (b, admin) => { requireRole_(admin, ["owner", "admin"]); deleteRow_(SHEET.products, b.id); return true; },
 
@@ -554,9 +576,13 @@ function publicAdmin_(a) { return { id: a.id, name: a.name, email: a.email, role
 
 function sessionAdmin_(token) {
   if (!token) return null;
-  const id = CacheService.getScriptCache().get("s_" + token);
+  const cache = CacheService.getScriptCache();
+  const id = cache.get("s_" + token);
   if (!id) return null;
-  return listAdmins_(false).find((a) => a.id === id) || null;
+  const a = listAdmins_(false).find((x) => x.id === id) || null;
+  // sliding session: stays signed in while being used, expires after SESSION_HOURS of no activity
+  if (a) cache.put("s_" + token, id, SESSION_HOURS * 3600);
+  return a;
 }
 
 function requireRole_(admin, roles) {

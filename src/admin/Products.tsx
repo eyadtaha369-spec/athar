@@ -29,6 +29,8 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
   const [err, setErr] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null); // progress text while the server saves
+  const [saveErr, setSaveErr] = useState("");
   const preset = SIZE_PRESETS[p.category];
   const up = <K extends keyof Product>(k: K, v: Product[K]) => setP((x) => ({ ...x, [k]: v }));
 
@@ -42,7 +44,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
     setUploading(false);
   };
 
-  const save = () => {
+  const save = async () => {
     const e: Record<string, string> = {};
     if (!p.name.trim()) e.name = "Give the product a name.";
     if (!p.variants.length && !(p.price > 0)) e.price = "Enter a selling price above 0.";
@@ -53,9 +55,16 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
     if (p.variants.some((v) => !v.label.trim())) e.variants = "Every size needs a name, or remove the empty one.";
     setErr(e);
     if (Object.keys(e).length) return;
-    saveProduct({ ...p, slug, name: p.name.trim(), details: detailsText.split("\n").map((s) => s.trim()).filter(Boolean) });
-    toast(isNew ? `${p.name} added to the store` : `${p.name} saved`);
-    onClose();
+    setSaveErr(""); setSaving("Saving…");
+    try {
+      await saveProduct({ ...p, slug, name: p.name.trim(), details: detailsText.split("\n").map((s) => s.trim()).filter(Boolean) }, setSaving);
+      toast(isNew ? `${p.name} added to the store` : `${p.name} saved`);
+      onClose();
+    } catch (er) {
+      // stay open: nothing is lost, the change is kept on this device and can be retried
+      setSaveErr(`Not saved yet: ${((er as Error).message || "the connection dropped").replace(/\.+$/, "")}. Your changes are kept on this device. Tap Save again, or it retries next time you open the admin.`);
+    }
+    setSaving(null);
   };
 
   const E = ({ k }: { k: string }) => err[k] ? <p className="text-topy-dark text-sm mt-1" role="alert">{err[k]}</p> : null;
@@ -234,16 +243,23 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
           {!isNew && (confirmDel ? (
             <span className="flex items-center gap-2 text-sm">
               Delete for good?
-              <button className="btn h-10 px-4 bg-topy-dark text-white" onClick={() => { deleteProduct(p.id); toast(`${initial.name} deleted`); onClose(); }}>Delete</button>
+              <button className="btn h-10 px-4 bg-topy-dark text-white" disabled={!!saving} onClick={async () => {
+                setSaving("Deleting…"); setSaveErr("");
+                try { await deleteProduct(p.id); toast(`${initial.name} deleted`); onClose(); }
+                catch (er) { setSaveErr(`Not deleted yet: ${(er as Error).message.replace(/\.+$/, "")}. It retries next time you open the admin.`); }
+                setSaving(null);
+              }}>Delete</button>
               <button className="btn h-10 px-4" onClick={() => setConfirmDel(false)}>Keep</button>
             </span>
           ) : (
             <button className="btn h-10 px-3 text-topy-dark" onClick={() => setConfirmDel(true)}><Trash2 size={16} />Delete</button>
           ))}
           <div className="ml-auto flex gap-2">
-            <button className="btn-line" onClick={onClose}>Discard</button>
-            <button className="btn-dark" onClick={save} disabled={uploading}>{isNew ? "Add product" : "Save changes"}</button>
+            <button className="btn-line" onClick={onClose} disabled={!!saving}>{saveErr ? "Close" : "Discard"}</button>
+            <button className="btn-dark min-w-[150px]" onClick={save} disabled={uploading || !!saving}>{saving ?? (saveErr ? "Try again" : isNew ? "Add product" : "Save changes")}</button>
           </div>
+          {saving && <p className="w-full text-xs text-stone text-right" role="status">Keep this screen open until it says saved.</p>}
+          {saveErr && <p className="w-full text-sm text-topy-dark" role="alert">{saveErr}</p>}
         </div>
       </motion.aside>
     </>
@@ -309,13 +325,13 @@ export default function Products() {
                     <td className="px-4 py-3 tnum">{new Set(p.variants.map((v) => v.price)).size > 1 && <span className="text-stone">from </span>}{egp(p.price)}{p.variants.length > 1 && <span className="block text-xs text-stone">{p.variants.length} sizes</span>}</td>
                     <td className="px-4 py-3">
                       <input key={p.id + ":" + p.stock} type="number" min={0} defaultValue={p.stock} aria-label={`Stock for ${p.name}`}
-                        onBlur={(e) => { const v = Math.max(0, Number(e.target.value) || 0); if (v !== p.stock) { saveProduct({ ...p, stock: v }); toast(`${p.name}: ${v} in stock`); } }}
+                        onBlur={(e) => { const v = Math.max(0, Number(e.target.value) || 0); if (v !== p.stock) { saveProduct({ ...p, stock: v }).then(() => toast(`${p.name}: ${v} in stock`), (er) => toast(`${p.name}: stock not saved yet. ${(er as Error).message}`)); } }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         className={cx("w-20 h-9 rounded-lg border px-2 tnum bg-sand", p.stock === 0 ? "border-topy text-topy-dark" : p.stock <= 5 ? "border-[#C9A77C]" : "border-ramady/70")} />
                     </td>
                     <td className="px-4 py-3 tnum text-stone">{sold.get(p.id) || 0}</td>
                     <td className="px-4 py-3">
-                      <button role="switch" aria-checked={p.active} aria-label={`Show ${p.name} in store`} onClick={() => { saveProduct({ ...p, active: !p.active }); toast(p.active ? `${p.name} hidden from the store` : `${p.name} is live`); }}
+                      <button role="switch" aria-checked={p.active} aria-label={`Show ${p.name} in store`} onClick={() => { const live = !p.active; saveProduct({ ...p, active: live }).then(() => toast(live ? `${p.name} is live` : `${p.name} hidden from the store`), (er) => toast(`${p.name}: not saved yet. ${(er as Error).message}`)); }}
                         className={cx("w-11 h-6 rounded-full relative transition-colors", p.active ? "bg-zeyti" : "bg-fahmy/20")}>
                         <span className={cx("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", p.active ? "left-[22px]" : "left-0.5")} />
                       </button>
