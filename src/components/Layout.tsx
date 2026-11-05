@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { FramedPreview, FreeDeliveryBar, IconMark, Lockup, Logo, Mark, ProductImage, Toast, Wordmark } from "./ui";
+import { FramePhoto, FreeDeliveryBar, IconMark, Lockup, Logo, Mark, ProductImage, Toast, Wordmark } from "./ui";
 import Preloader from "./Preloader";
 import { PushPrompt, PushToggle } from "./Push";
 import { registerServiceWorker } from "../lib/push";
@@ -129,7 +129,7 @@ function CartDrawer() {
                     const v = p!.variants.find((x) => x.id === c.variantId);
                     return (
                       <li key={c.key} className="py-5 flex gap-4">
-                        <div className="w-20 h-24 rounded-lg overflow-hidden bg-ramly shrink-0">{hasFrames(p!) && c.frame ? <FramedPreview p={p!} frame={c.frame} sizeLabel={v?.label} /> : <ProductImage p={p!} text={c.custom} />}</div>
+                        <div className="w-20 h-24 rounded-lg overflow-hidden bg-ramly shrink-0">{hasFrames(p!) && c.frame ? <FramePhoto p={p!} frame={c.frame} /> : <ProductImage p={p!} text={c.custom} />}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between gap-3">
                             <p className="font-medium leading-snug">{p!.name}</p>

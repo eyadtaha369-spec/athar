@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { linePrice, useStore } from "../lib/store";
-import { Accordion, FramedPreview, ProductCard, ProductImage } from "../components/ui";
+import { Accordion, FramePhoto, ProductCard, ProductImage } from "../components/ui";
 import { CATEGORY_LABEL, DELIVERY_ETA, FRAMES, cx, egp, hasFrames } from "../lib/utils";
 import type { Frame } from "../lib/types";
 
@@ -14,10 +14,16 @@ export default function ProductPage() {
   const [variant, setVariant] = useState<string | undefined>(p?.variants[0]?.id);
   const [custom, setCustom] = useState("");
   const [qty, setQty] = useState(1);
-  const [img, setImg] = useState(0);
+  const framedProduct = !!p && hasFrames(p);
+  // posters open on the white-frame photo; -1 = "the frame photo" view in the gallery
+  const [img, setImg] = useState(framedProduct ? -1 : 0);
   const [err, setErr] = useState("");
-  const [frame, setFrame] = useState<Frame | undefined>();
+  const [frame, setFrame] = useState<Frame | undefined>(framedProduct ? "white" : undefined);
   const [frameErr, setFrameErr] = useState(false);
+  // the catalog can arrive after the page opens: start posters on the white-frame photo then
+  useEffect(() => {
+    if (framedProduct && !frame) { setFrame("white"); setImg(-1); }
+  }, [framedProduct]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!p) {
     return (
@@ -33,9 +39,9 @@ export default function ProductPage() {
   const selected = p.variants.find((v) => v.id === variant);
   const soldOut = p.stock <= 0;
   const related = db.products.filter((x) => x.active && x.id !== p.id && x.category === p.category).concat(db.products.filter((x) => x.active && x.featured && x.category !== p.category)).slice(0, 4);
-  const views = p.images.length ? p.images.map((_, i) => i) : [0];
-
   const framed = hasFrames(p);
+  // posters: the frame photo first, then any extra photos
+  const views = framed ? [-1, ...p.images.map((_, i) => i)] : p.images.length ? p.images.map((_, i) => i) : [0];
   const add = () => {
     if (framed && !frame) {
       setFrameErr(true); setErr("Choose a black or white frame first. اختار لون الإطار");
@@ -63,19 +69,23 @@ export default function ProductPage() {
               <div className="flex md:flex-col gap-2 md:w-20">
                 {views.map((i) => (
                   <button key={i} onClick={() => setImg(i)} className={cx("w-16 md:w-20 aspect-[4/5] rounded-lg overflow-hidden border-2", img === i ? "border-topy" : "border-transparent")} aria-label={`View image ${i + 1}`}>
-                    <ProductImage p={p} i={i} />
+                    {i === -1 ? <FramePhoto p={p} frame={frame} /> : <ProductImage p={p} i={i} />}
                   </button>
                 ))}
               </div>
             )}
             <motion.div key={img} initial={{ opacity: 0.4 }} animate={{ opacity: 1 }} className={cx("relative flex-1 rounded-xl overflow-hidden", p.category === "flags" ? "aspect-square bg-ink" : "aspect-[4/5] bg-ramly")}>
-              {framed ? (
+              {framed && img === -1 ? (
                 <>
-                  <FramedPreview p={p} i={img} frame={frame} sizeLabel={selected?.label} />
-                  <span className="absolute left-3 top-3 rounded-full bg-paper/90 backdrop-blur px-3 py-1 text-xs">
-                    {frame ? FRAMES.find((f) => f.id === frame)!.en : "Pick a frame to preview it"}
-                  </span>
+                  <FramePhoto p={p} frame={frame} />
+                  {frame && (
+                    <span className="absolute left-3 top-3 rounded-full bg-paper/90 backdrop-blur px-3 py-1 text-xs">
+                      {FRAMES.find((f) => f.id === frame)!.en} · <span lang="ar">{FRAMES.find((f) => f.id === frame)!.ar}</span>
+                    </span>
+                  )}
                 </>
+              ) : framed ? (
+                <ProductImage p={p} i={img} />
               ) : (
                 <ProductImage p={p} i={img} text={p.category === "flags" ? custom : undefined} className={p.category === "flags" && p.images.length ? "object-contain" : ""} />
               )}
@@ -116,7 +126,7 @@ export default function ProductPage() {
             {framed && (
               <fieldset id="frame-picker" className="mt-6">
                 <legend className="text-sm text-stone mb-3">
-                  Choose a frame <span className="text-topy-dark">(required)</span>
+                  Frame colour
                   {frame && <span className="text-fahmy">: {FRAMES.find((f) => f.id === frame)!.en}</span>}
                 </legend>
                 <div className={cx("grid grid-cols-2 gap-2 rounded-lg transition-shadow", frameErr && !frame && "ring-2 ring-topy-dark ring-offset-4 ring-offset-sand")} role="radiogroup" aria-label="Frame colour" aria-required="true">
@@ -124,7 +134,7 @@ export default function ProductPage() {
                     const on = frame === f.id;
                     return (
                       <button key={f.id} type="button" role="radio" aria-checked={on}
-                        onClick={() => { setFrame(f.id); setFrameErr(false); setErr(""); }}
+                        onClick={() => { setFrame(f.id); setImg(-1); setFrameErr(false); setErr(""); }}
                         className={cx("flex items-center gap-3 text-left rounded-md border px-3.5 py-3 transition-colors", on ? "bg-fahmy text-sand border-fahmy" : "border-ramady hover:border-fahmy")}>
                         {/* little frame swatch */}
                         <span aria-hidden className={cx("w-8 h-10 shrink-0 rounded-[3px] p-[4px] shadow-sm", f.id === "black" ? "bg-[#151515]" : "bg-[#F8F6F1] ring-1 ring-black/15")}>
@@ -138,11 +148,11 @@ export default function ProductPage() {
                     );
                   })}
                 </div>
-                <p className="text-xs text-stone mt-2">Same price for both. The preview shows your poster in the frame you pick.</p>
+                <p className="text-xs text-stone mt-2">Same price for both. The photo shows the exact frame you'll get.</p>
                 {/* on phones the big preview is scrolled away, so show it again right here */}
                 <div className="lg:hidden mt-3 flex items-center gap-3">
-                  <div className="w-28 aspect-[4/5] rounded-lg overflow-hidden shrink-0"><FramedPreview p={p} i={img} frame={frame} sizeLabel={selected?.label} /></div>
-                  <p className="text-sm text-stone">{frame ? `${selected?.label ?? ""} in a ${frame} frame.` : "Pick a frame to see it here."}</p>
+                  <div className="w-28 aspect-[4/5] rounded-lg overflow-hidden shrink-0"><FramePhoto p={p} frame={frame} /></div>
+                  <p className="text-sm text-stone">{frame ? `${selected?.label ?? ""}, ${frame === "white" ? "white" : "black"} frame.` : ""}</p>
                 </div>
               </fieldset>
             )}

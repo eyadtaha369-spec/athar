@@ -6,7 +6,7 @@ import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
 import { SIZE_PRESETS, fromPrice, presetVariants } from "../lib/pricing";
 import { Forbidden, PageHead, can } from "./AdminLayout";
-import { FramedPreview, ProductImage } from "../components/ui";
+import { ProductImage } from "../components/ui";
 import { CATEGORY_LABEL, FRAMES, compressImage, cx, egp, hasFrames, uid } from "../lib/utils";
 import type { ArtKind, Category, Product } from "../lib/types";
 
@@ -53,6 +53,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
     const slug = p.slug.trim() || slugify(p.name);
     if (db.products.some((x) => x.slug === slug && x.id !== p.id)) e.slug = "Another product already uses this link.";
     if (p.variants.some((v) => !v.label.trim())) e.variants = "Every size needs a name, or remove the empty one.";
+    if (hasFrames(p) && !(p.frameImages?.white && p.frameImages?.black)) e.frames = "Upload both photos: the poster in a white frame and in a black frame.";
     setErr(e);
     if (Object.keys(e).length) return;
     setSaveErr(""); setSaving("Saving…");
@@ -82,9 +83,46 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 md:px-7 py-6 space-y-8">
+          {hasFrames(p) && (
+            <section>
+              <p className="label">Frame photos <span className="text-topy-dark">(both required)</span></p>
+              <p className="text-xs text-stone mb-3">Upload the same poster photographed in a white frame and in a black frame. Customers switch between these two photos on the product page.</p>
+              <div className="grid grid-cols-2 gap-3 max-w-[440px]">
+                {FRAMES.map((f) => {
+                  const src = p.frameImages?.[f.id];
+                  return (
+                    <div key={f.id}>
+                      <p className="text-sm mb-1.5">{f.en} <span className="text-stone" lang="ar">· {f.ar}</span></p>
+                      <label className={cx("relative block aspect-[4/5] rounded-xl overflow-hidden cursor-pointer", src ? "bg-ramly" : "border-2 border-dashed border-ramady hover:border-fahmy/50 grid place-items-center text-center text-sm text-stone p-2")}>
+                        {src ? (
+                          <>
+                            <img src={img(src)} alt={`${f.en} photo`} className="w-full h-full object-cover" />
+                            <span className="absolute left-2 bottom-2 text-[11px] bg-sand rounded-full px-2 py-1">Replace</span>
+                          </>
+                        ) : (
+                          <span><ImagePlus className="mx-auto mb-1 text-topy-dark" size={22} />Upload {f.id} frame photo</span>
+                        )}
+                        <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          try { const data = await compressImage(file, 1400, 0.85); up("frameImages", { ...p.frameImages, [f.id]: data }); setErr((x) => ({ ...x, frames: "" })); }
+                          catch (er) { setErr((x) => ({ ...x, frames: (er as Error).message })); }
+                          e.target.value = "";
+                        }} />
+                      </label>
+                      {src && (
+                        <button type="button" onClick={() => up("frameImages", { ...p.frameImages, [f.id]: undefined })} className="text-xs text-stone underline mt-1.5">Remove</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <E k="frames" />
+            </section>
+          )}
+
           {/* Images */}
           <section>
-            <p className="label">Photos <span className="text-stone/70">(first one is the cover, up to 6)</span></p>
+            <p className="label">{hasFrames(p) ? <>Extra photos <span className="text-stone/70">(optional: close-ups, room shots; up to 6)</span></> : <>Photos <span className="text-stone/70">(first one is the cover, up to 6)</span></>}</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {p.images.map((src, i) => (
                 <div key={i} className="relative aspect-[4/5] rounded-xl overflow-hidden bg-ramly group">
@@ -102,7 +140,7 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
                   <span><ImagePlus className="mx-auto mb-1 text-topy-dark" size={22} />{uploading ? "Uploading…" : "Add photos"}</span>
                 </label>
               )}
-              {p.images.length === 0 && (
+              {p.images.length === 0 && !hasFrames(p) && (
                 <div className="aspect-[4/5] rounded-xl overflow-hidden bg-ramly relative">
                   <ProductImage p={p} />
                   <span className="absolute inset-x-0 bottom-0 text-[11px] text-center bg-fahmy/70 text-sand py-1">Placeholder shown until you add photos</span>
@@ -112,38 +150,6 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
             <E k="images" />
           </section>
 
-          {hasFrames(p) && (
-            <section>
-              <p className="label">Framed photos <span className="text-stone/70">(optional)</span></p>
-              <p className="text-xs text-stone mb-3">Customers must pick a black or white frame. Without a photo here, the site frames your design automatically.</p>
-              <div className="grid grid-cols-2 gap-3 max-w-[420px]">
-                {FRAMES.map((f) => {
-                  const src = p.frameImages?.[f.id];
-                  return (
-                    <div key={f.id}>
-                      <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-ramly">
-                        <FramedPreview p={p} frame={f.id} sizeLabel={p.variants[0]?.label} />
-                        {!src && <span className="absolute inset-x-0 bottom-0 text-[11px] text-center bg-fahmy/70 text-sand py-1">Automatic preview</span>}
-                        {src && (
-                          <button type="button" onClick={() => up("frameImages", { ...p.frameImages, [f.id]: undefined })}
-                            className="absolute right-2 bottom-2 w-7 h-7 grid place-items-center bg-sand rounded-full" aria-label={`Remove ${f.en} photo`}><X size={13} /></button>
-                        )}
-                      </div>
-                      <label className="mt-2 flex items-center justify-between gap-2 text-sm cursor-pointer">
-                        <span>{f.en} <span className="text-stone" lang="ar">· {f.ar}</span></span>
-                        <span className="text-topy-dark underline underline-offset-2">{src ? "Replace" : "Upload"}</span>
-                        <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
-                          const file = e.target.files?.[0]; if (!file) return;
-                          try { const data = await compressImage(file, 1200, 0.82); up("frameImages", { ...p.frameImages, [f.id]: data }); }
-                          catch (er) { setErr((x) => ({ ...x, images: (er as Error).message })); }
-                        }} />
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
 
           <section className="grid sm:grid-cols-2 gap-4">
             <div><label htmlFor="pe-name" className="label">Name (English)</label><input id="pe-name" className="field" value={p.name} onChange={(e) => up("name", e.target.value)} /><E k="name" /></div>

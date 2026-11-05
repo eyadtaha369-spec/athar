@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ImageUp, Landmark, Smartphone, Wallet, X } from "lucide-react";
 import { linePrice, useStore } from "../lib/store";
 import { linkOrderToPush } from "../lib/push";
-import { CopyRow, FramedPreview, FreeDeliveryBar, ProductImage } from "../components/ui";
+import { CopyRow, FramePhoto, FreeDeliveryBar, ProductImage } from "../components/ui";
 import { DELIVERY_ETA, GOVERNORATES, compressImage, cx, egp, frameLabel, hasFrames, shippingFee } from "../lib/utils";
 import type { PayMethod } from "../lib/types";
 
@@ -283,7 +283,7 @@ export default function Checkout() {
             {rows.map(({ c, p }) => (
               <li key={c.key} className="py-3 flex gap-3">
                 <div className="relative w-14 h-[70px] rounded-lg overflow-hidden bg-ramly shrink-0">
-                  {hasFrames(p) && c.frame ? <FramedPreview p={p} frame={c.frame} sizeLabel={p.variants.find((v) => v.id === c.variantId)?.label} /> : <ProductImage p={p} text={c.custom} />}
+                  {hasFrames(p) && c.frame ? <FramePhoto p={p} frame={c.frame} /> : <ProductImage p={p} text={c.custom} />}
                   <span className="absolute -top-0 -right-0 tnum text-[11px] bg-fahmy text-sand rounded-bl-lg px-1.5">{c.qty}</span>
                 </div>
                 <div className="flex-1 min-w-0 text-sm">
