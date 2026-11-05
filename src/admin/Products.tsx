@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ImagePlus, Plus, Search, Trash2, X } from "lucide-react";
+import { FolderUp, ImagePlus, Plus, Search, Trash2, X } from "lucide-react";
+import { BulkImport } from "./BulkImport";
 import { useStore } from "../lib/store";
 import { img } from "../lib/assets";
 import { SIZE_PRESETS, fromPrice, presetVariants } from "../lib/pricing";
@@ -279,6 +280,7 @@ export default function Products() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [editing, setEditing] = useState<Product | null>(() => db.products.find((p) => p.id === sp.get("edit")) ?? null);
+  const [bulk, setBulk] = useState(false);
 
   const sold = useMemo(() => {
     const m = new Map<string, number>();
@@ -294,7 +296,10 @@ export default function Products() {
   return (
     <>
       <PageHead title="Products" sub={`${db.products.length} products, ${db.products.filter((p) => p.active).length} visible in the store`}
-        action={<button className="btn-topy" onClick={() => setEditing(blank())}><Plus size={17} />New product</button>} />
+        action={<div className="flex flex-wrap gap-2">
+          <button className="btn-line" onClick={() => setBulk(true)}><FolderUp size={17} />Bulk import posters</button>
+          <button className="btn-topy" onClick={() => setEditing(blank())}><Plus size={17} />New product</button>
+        </div>} />
 
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="relative flex-1 min-w-[220px] max-w-sm">
@@ -353,6 +358,7 @@ export default function Products() {
       )}
 
       <AnimatePresence>{editing && <Editor key={editing.id} initial={editing} onClose={close} />}</AnimatePresence>
+      {bulk && <BulkImport onClose={() => setBulk(false)} />}
     </>
   );
 }
