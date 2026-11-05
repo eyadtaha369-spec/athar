@@ -88,11 +88,12 @@ function Editor({ initial, onClose }: { initial: Product; onClose: () => void })
               <p className="label">Frame photos <span className="text-topy-dark">(both required)</span></p>
               <p className="text-xs text-stone mb-3">Upload the same poster photographed in a white frame and in a black frame. Customers switch between these two photos on the product page.</p>
               <div className="grid grid-cols-2 gap-3 max-w-[440px]">
-                {FRAMES.map((f) => {
+                {[...FRAMES].reverse().map((f) => {
                   const src = p.frameImages?.[f.id];
                   return (
                     <div key={f.id}>
-                      <p className="text-sm mb-1.5">{f.en} <span className="text-stone" lang="ar">· {f.ar}</span></p>
+                      <p className="text-sm mb-1.5 font-medium">{f.id === "black" ? "Black Frame Image" : "White Frame Image"}</p>
+                      <p className="text-xs text-stone mb-1.5" lang="ar" dir="rtl">{f.id === "black" ? "رفع صورة الإطار الأسود" : "رفع صورة الإطار الأبيض"}</p>
                       <label className={cx("relative block aspect-[4/5] rounded-xl overflow-hidden cursor-pointer", src ? "bg-ramly" : "border-2 border-dashed border-ramady hover:border-fahmy/50 grid place-items-center text-center text-sm text-stone p-2")}>
                         {src ? (
                           <>
