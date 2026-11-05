@@ -17,7 +17,27 @@ import type { Frame, Product } from "../lib/types";
  *   Black/Ferrari.jpg / White/Ferrari.jpg          (one folder per colour)
  */
 
-type Row = { key: string; name: string; black?: File; white?: File; status: "ready" | "saving" | "saved" | "failed" | "skipped"; note?: string };
+type Row = { key: string; name: string; black?: File; white?: File; status: "ready" | "saving" | "saved" | "failed" | "skipped"; note?: string; auto?: boolean };
+
+/** Average brightness (0–255) of an image, measured on a small copy. Used to tell the black frame from the white one. */
+async function brightness(f: File): Promise<number> {
+  const url = URL.createObjectURL(f);
+  try {
+    const im = await new Promise<HTMLImageElement>((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+    const c = document.createElement("canvas"); c.width = 48; c.height = 60;
+    const g = c.getContext("2d")!; g.drawImage(im, 0, 0, 48, 60);
+    const d = g.getImageData(0, 0, 48, 60).data;
+    let t = 0; for (let i = 0; i < d.length; i += 4) t += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    return t / (d.length / 4);
+  } catch { return 128; } finally { URL.revokeObjectURL(url); }
+}
+
+/** "Ferrari (2).jpg", "Ferrari-1", "Ferrari copy", "Ferrari_a" → "ferrari": names that differ only by a numbering mark. */
+const baseKey = (n: string) => {
+  let k = n.replace(/\.[a-z0-9]+$/i, "").trim();
+  for (let i = 0; i < 3; i++) k = k.replace(/[\s_\-.]*(\(\d+\)|\d{1,2}|copy|نسخة|v\d+|[ab])$/i, "").trim();
+  return k.toLowerCase();
+};
 
 const BLACK = /(^|[\s_\-.()[\]])(black|blk|b|اسود|أسود|الاسود|الأسود|اسوود)(?=$|[\s_\-.()[\]])/i;
 const WHITE = /(^|[\s_\-.()[\]])(white|wht|w|ابيض|أبيض|الابيض|الأبيض)(?=$|[\s_\-.()[\]])/i;
@@ -65,26 +85,61 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
 
   const existing = useMemo(() => new Set(db.products.filter((p) => p.category === "posters").map((p) => p.name.trim().toLowerCase())), [db.products]);
 
-  const pick = (files: FileList | null) => {
+  const [reading, setReading] = useState(false);
+
+  const pick = async (files: FileList | null) => {
     if (!files?.length) return;
+    setReading(true);
     const map = new Map<string, Row>();
-    const loose: string[] = [];
+    const loose: File[] = [];
     [...files].filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(f.name)).forEach((f) => {
       const { name, frame } = readFile(f);
-      if (!frame) { loose.push(f.name); return; } // can't tell which frame it is
+      if (!frame) { loose.push(f); return; }
       const key = name.toLowerCase();
       const row = map.get(key) ?? { key, name, status: "ready" as const };
       if (row[frame]) row.note = `Two ${frame} images found; using ${f.name}`;
       row[frame] = f;
       map.set(key, row);
     });
+
+    // Files that don't say black or white: pair them by folder (2 images in a poster folder)
+    // or by matching names ("Ferrari 1" + "Ferrari 2"), then tell the frames apart by brightness.
+    const pathOf = (f: File) => ((f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name).split("/");
+    const groups = new Map<string, { name: string; files: File[] }>();
+    const byFolder = new Map<string, File[]>();
+    loose.forEach((f) => { const parts = pathOf(f); const folder = parts.length > 2 ? parts.slice(0, -1).join("/") : ""; if (folder) byFolder.set(folder, [...(byFolder.get(folder) ?? []), f]); });
+    const taken = new Set<File>();
+    byFolder.forEach((fs, folder) => {
+      if (fs.length === 2) { const name = tidy(folder.split("/").pop()!); groups.set("dir:" + folder, { name, files: fs }); fs.forEach((f) => taken.add(f)); }
+    });
+    loose.filter((f) => !taken.has(f)).forEach((f) => {
+      const k = baseKey(f.name);
+      const g = groups.get("name:" + k) ?? { name: tidy(f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[\s_\-.]*(\(\d+\)|\d{1,2}|copy|نسخة|v\d+|[ab])$/i, "")), files: [] };
+      g.files.push(f); groups.set("name:" + k, g);
+    });
+    const unpaired: Row[] = [];
+    for (const [gk, g] of groups) {
+      const key = g.name.toLowerCase() || gk;
+      if (g.files.length !== 2 || map.has(key)) {
+        unpaired.push({ key: "x:" + gk, name: g.name || g.files[0].name, status: "skipped", black: undefined, white: undefined,
+          note: g.files.length === 1 ? `Couldn't find a second image to pair with ${g.files[0].name}` : `${g.files.length} images share this name; rename them black / white` });
+        continue;
+      }
+      const [a, b] = g.files;
+      const [la, lb] = await Promise.all([brightness(a), brightness(b)]);
+      const [black, white] = la <= lb ? [a, b] : [b, a];
+      map.set(key, { key, name: g.name, black, white, status: "ready", auto: true, note: Math.abs(la - lb) < 6 ? "Frames look alike: check which is black, tap Swap if needed" : "Frame colours detected from the images" });
+    }
+
     const list = [...map.values()].map((r): Row => {
       if (existing.has(r.key)) return { ...r, status: "skipped", note: "Already in the store" };
       if (!r.black || !r.white) return { ...r, status: "skipped", note: `Missing the ${!r.black ? "black" : "white"} frame image` };
       return r;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    }).sort((a, b) => a.name.localeCompare(b.name)).concat(unpaired);
     setRows(list);
-    if (loose.length) toast(`${loose.length} file${loose.length > 1 ? "s" : ""} didn't say black or white and ${loose.length > 1 ? "were" : "was"} left out`);
+    setReading(false);
+    const auto = list.filter((r) => r.auto).length;
+    if (auto) toast(`${auto} poster${auto === 1 ? "" : "s"} paired by matching names. Check the black/white order.`);
   };
 
   const ready = rows.filter((r) => r.status === "ready" || r.status === "failed");
@@ -147,7 +202,7 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
             <p className="text-sm text-stone mt-1">Each poster needs a black-frame and a white-frame image. Name them like <b>Ferrari - black.jpg</b> and <b>Ferrari - white.jpg</b> (or Ferrari_B / Ferrari_W, أسود / أبيض), or use one folder per poster.</p>
             <div className="flex flex-wrap gap-2 mt-4">
               <label className={cx("btn-dark h-11 px-4 cursor-pointer", running && "opacity-50 pointer-events-none")}>
-                <FolderUp size={16} />Choose folder
+                <FolderUp size={16} />{reading ? "Reading…" : "Choose folder"}
                 {/* @ts-expect-error webkitdirectory is supported by every current browser */}
                 <input type="file" webkitdirectory="" directory="" multiple className="sr-only" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
               </label>
@@ -185,6 +240,9 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
                         onChange={(e) => set(r.key, { name: e.target.value })} dir="auto" />
                       {r.note && <p className={cx("text-xs mt-0.5", r.status === "failed" || r.status === "skipped" ? "text-topy-dark" : "text-stone")}>{r.note}</p>}
                     </div>
+                    {r.auto && r.status === "ready" && !running && (
+                      <button type="button" className="text-xs underline text-stone hover:text-fahmy shrink-0" onClick={() => set(r.key, { black: r.white, white: r.black, note: "Swapped" })}>Swap</button>
+                    )}
                     <span className="shrink-0 w-7 grid place-items-center">
                       {r.status === "saving" && <Loader2 size={17} className="animate-spin text-stone" />}
                       {r.status === "saved" && <Check size={17} className="text-zeyti-dark" />}
