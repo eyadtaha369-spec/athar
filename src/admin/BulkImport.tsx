@@ -19,25 +19,76 @@ import type { Frame, Product } from "../lib/types";
 
 type Row = { key: string; name: string; black?: File; white?: File; status: "ready" | "saving" | "saved" | "failed" | "skipped"; note?: string; auto?: boolean };
 
-/** Average brightness (0–255) of an image, measured on a small copy. Used to tell the black frame from the white one. */
-async function brightness(f: File): Promise<number> {
-  const url = URL.createObjectURL(f);
+/**
+ * Looks at an image once and returns:
+ *  - art: a small colour fingerprint of the middle of the picture (the poster artwork, inside any frame),
+ *    normalised so lighting doesn't matter. The black and white versions of a design share it.
+ *  - edge: brightness around the outside (where the frame is). The black-frame version is darker there.
+ */
+type Look = { art: Float32Array; edge: number; grid: Float32Array };
+const GW = 48, GH = 60; // brightness grid used to find where two versions differ (the frame)
+async function look(f: File): Promise<Look | null> {
   try {
-    const im = await new Promise<HTMLImageElement>((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
-    const c = document.createElement("canvas"); c.width = 48; c.height = 60;
-    const g = c.getContext("2d")!; g.drawImage(im, 0, 0, 48, 60);
-    const d = g.getImageData(0, 0, 48, 60).data;
-    let t = 0; for (let i = 0; i < d.length; i += 4) t += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    return t / (d.length / 4);
-  } catch { return 128; } finally { URL.revokeObjectURL(url); }
+    const bmp = await createImageBitmap(f, { resizeWidth: 240, resizeQuality: "low" } as ImageBitmapOptions);
+    const W = 240, H = Math.max(1, Math.round((bmp.height / bmp.width) * 240));
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d", { willReadFrequently: true })!; g.drawImage(bmp, 0, 0, W, H); bmp.close?.();
+    const px = g.getImageData(0, 0, W, H).data;
+    const lum = (x: number, y: number) => { const k = (y * W + x) * 4; return 0.299 * px[k] + 0.587 * px[k + 1] + 0.114 * px[k + 2]; };
+    // artwork: the middle of the picture (well inside any frame and mat), sampled on a 12×15 grid, RGB
+    const gx = 12, gy = 15, art = new Float32Array(gx * gy * 3);
+    const x0 = W * 0.36, x1 = W * 0.64, y0 = H * 0.36, y1 = H * 0.64;
+    for (let j = 0; j < gy; j++) for (let i = 0; i < gx; i++) {
+      const x = Math.floor(x0 + ((i + 0.5) / gx) * (x1 - x0)), y = Math.floor(y0 + ((j + 0.5) / gy) * (y1 - y0));
+      const k = (y * W + x) * 4, o = (j * gx + i) * 3;
+      art[o] = px[k]; art[o + 1] = px[k + 1]; art[o + 2] = px[k + 2];
+    }
+    let mean = 0; art.forEach((v) => (mean += v)); mean /= art.length;
+    let norm = 0; for (let k = 0; k < art.length; k++) { art[k] -= mean; norm += art[k] * art[k]; }
+    norm = Math.sqrt(norm) || 1; for (let k = 0; k < art.length; k++) art[k] /= norm;
+    // frame area: everything outside the middle 60%
+    let t = 0, n = 0;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+      if (x > W * 0.2 && x < W * 0.8 && y > H * 0.2 && y < H * 0.8) continue;
+      t += lum(x, y); n++;
+    }
+    const grid = new Float32Array(GW * GH);
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) grid[j * GW + i] = lum(Math.floor(((i + 0.5) / GW) * W), Math.floor(((j + 0.5) / GH) * H));
+    return { art, edge: n ? t / n : 128, grid };
+  } catch { return null; }
 }
+/**
+ * Which of two versions of the same design has the black frame: look only where the two pictures differ
+ * clearly (that is the frame), and take the one that is darker there.
+ */
+function blackFirst(a: Look, b: Look): { aIsBlack: boolean; sure: boolean } {
+  let da = 0, db = 0, n = 0;
+  for (let k = 0; k < a.grid.length; k++) {
+    if (Math.abs(a.grid[k] - b.grid[k]) > 45) { da += a.grid[k]; db += b.grid[k]; n++; }
+  }
+  if (n < 4) return { aIsBlack: a.edge <= b.edge, sure: false };
+  return { aIsBlack: da <= db, sure: Math.abs(da - db) / n > 40 };
+}
+const likeness = (a: Float32Array, b: Float32Array) => { let d = 0; for (let k = 0; k < a.length; k++) d += a[k] * b[k]; return d; }; // 1 = identical
 
-/** "Ferrari (2).jpg", "Ferrari-1", "Ferrari copy", "Ferrari_a" → "ferrari": names that differ only by a numbering mark. */
-const baseKey = (n: string) => {
-  let k = n.replace(/\.[a-z0-9]+$/i, "").trim();
-  for (let i = 0; i < 3; i++) k = k.replace(/[\s_\-.]*(\(\d+\)|\d{1,2}|copy|نسخة|v\d+|[ab])$/i, "").trim();
-  return k.toLowerCase();
-};
+/** Strips the parts of a file name that aren't the design's name. */
+const GENERIC = /^(img|image|photo|pic|dsc|pxl|screenshot|untitled( design)?|design|poster|mockup|copy of|نسخة من|صورة|تصميم)\b/i;
+function cleanName(raw: string) {
+  let s = raw.replace(/\.[a-z0-9]+$/i, "");
+  s = s.replace(/^(copy of|نسخة من)\s+/i, "")
+    .replace(/\b\d{3,5}\s*[x×]\s*\d{3,5}\b/gi, " ")           // 1080x1350
+    .replace(/\b(19|20)\d{2}[-_.]?\d{2}[-_.]?\d{2}\b/g, " ")    // dates
+    .replace(/[\s_\-.]*(\(\d+\)|copy|نسخة|final|v\d+)\s*$/gi, " ");
+  s = tidy(s).replace(/[\s_\-.]+\d{1,3}$/, "").trim();         // trailing numbering
+  return s;
+}
+const isGeneric = (s: string) => !s || /^[\d\s()_\-.]+$/.test(s) || (GENERIC.test(s) && s.replace(GENERIC, "").replace(/[\s\d_\-.()]+/g, "").length === 0);
+function commonName(a: string, b: string) {
+  if (a.toLowerCase() === b.toLowerCase()) return a;
+  let i = 0; while (i < a.length && i < b.length && a[i].toLowerCase() === b[i].toLowerCase()) i++;
+  const pre = a.slice(0, i).replace(/[\s_\-.(]+$/, "").trim();
+  return pre.length >= 3 ? pre : !isGeneric(a) ? a : b;
+}
 
 const BLACK = /(^|[\s_\-.()[\]])(black|blk|b|اسود|أسود|الاسود|الأسود|اسوود)(?=$|[\s_\-.()[\]])/i;
 const WHITE = /(^|[\s_\-.()[\]])(white|wht|w|ابيض|أبيض|الابيض|الأبيض)(?=$|[\s_\-.()[\]])/i;
@@ -86,60 +137,78 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
   const existing = useMemo(() => new Set(db.products.filter((p) => p.category === "posters").map((p) => p.name.trim().toLowerCase())), [db.products]);
 
   const [reading, setReading] = useState(false);
+  const [readStep, setReadStep] = useState("");
 
   const pick = async (files: FileList | null) => {
     if (!files?.length) return;
-    setReading(true);
+    setReading(true); setRows([]);
+    const images = [...files].filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(f.name));
     const map = new Map<string, Row>();
     const loose: File[] = [];
-    [...files].filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(f.name)).forEach((f) => {
+
+    // 1. names that say black / white (English or Arabic, or B / W)
+    const named = new Map<string, { name: string; black?: File; white?: File }>();
+    images.forEach((f) => {
       const { name, frame } = readFile(f);
       if (!frame) { loose.push(f); return; }
-      const key = name.toLowerCase();
-      const row = map.get(key) ?? { key, name, status: "ready" as const };
-      if (row[frame]) row.note = `Two ${frame} images found; using ${f.name}`;
-      row[frame] = f;
-      map.set(key, row);
+      const key = cleanName(name).toLowerCase() || name.toLowerCase();
+      const g = named.get(key) ?? { name: cleanName(name) || name };
+      if (g[frame]) loose.push(g[frame]!); // a second image of the same colour: let the picture matching place it
+      g[frame] = f; named.set(key, g);
+    });
+    named.forEach((g, key) => {
+      if (g.black && g.white) map.set(key, { key, name: g.name, black: g.black, white: g.white, status: "ready" });
+      else loose.push((g.black || g.white)!); // its partner may have an unhelpful name: match by picture
     });
 
-    // Files that don't say black or white: pair them by folder (2 images in a poster folder)
-    // or by matching names ("Ferrari 1" + "Ferrari 2"), then tell the frames apart by brightness.
-    const pathOf = (f: File) => ((f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name).split("/");
-    const groups = new Map<string, { name: string; files: File[] }>();
-    const byFolder = new Map<string, File[]>();
-    loose.forEach((f) => { const parts = pathOf(f); const folder = parts.length > 2 ? parts.slice(0, -1).join("/") : ""; if (folder) byFolder.set(folder, [...(byFolder.get(folder) ?? []), f]); });
-    const taken = new Set<File>();
-    byFolder.forEach((fs, folder) => {
-      if (fs.length === 2) { const name = tidy(folder.split("/").pop()!); groups.set("dir:" + folder, { name, files: fs }); fs.forEach((f) => taken.add(f)); }
-    });
-    loose.filter((f) => !taken.has(f)).forEach((f) => {
-      const k = baseKey(f.name);
-      const g = groups.get("name:" + k) ?? { name: tidy(f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[\s_\-.]*(\(\d+\)|\d{1,2}|copy|نسخة|v\d+|[ab])$/i, "")), files: [] };
-      g.files.push(f); groups.set("name:" + k, g);
-    });
-    const unpaired: Row[] = [];
-    for (const [gk, g] of groups) {
-      const key = g.name.toLowerCase() || gk;
-      if (g.files.length !== 2 || map.has(key)) {
-        unpaired.push({ key: "x:" + gk, name: g.name || g.files[0].name, status: "skipped", black: undefined, white: undefined,
-          note: g.files.length === 1 ? `Couldn't find a second image to pair with ${g.files[0].name}` : `${g.files.length} images share this name; rename them black / white` });
-        continue;
-      }
-      const [a, b] = g.files;
-      const [la, lb] = await Promise.all([brightness(a), brightness(b)]);
-      const [black, white] = la <= lb ? [a, b] : [b, a];
-      map.set(key, { key, name: g.name, black, white, status: "ready", auto: true, note: Math.abs(la - lb) < 6 ? "Frames look alike: check which is black, tap Swap if needed" : "Frame colours detected from the images" });
+    // 2. everything else: match the two versions of each design by their artwork
+    const looks: { f: File; l: Look }[] = [];
+    const unreadable: File[] = [];
+    for (let k = 0; k < loose.length; k++) {
+      setReadStep(`Comparing images ${k + 1} of ${loose.length}…`);
+      const l = await look(loose[k]);
+      if (l) looks.push({ f: loose[k], l }); else unreadable.push(loose[k]);
     }
+    const pairs: { a: number; b: number; s: number }[] = [];
+    for (let a = 0; a < looks.length; a++) for (let b = a + 1; b < looks.length; b++) {
+      pairs.push({ a, b, s: likeness(looks[a].l.art, looks[b].l.art) });
+    }
+    pairs.sort((x, y) => y.s - x.s);
+    const used = new Set<number>();
+    const unpaired: Row[] = [];
+    for (const pr of pairs) {
+      if (used.has(pr.a) || used.has(pr.b) || pr.s < 0.55) continue;
+      used.add(pr.a); used.add(pr.b);
+      const A = looks[pr.a], B = looks[pr.b];
+      const bf = blackFirst(A.l, B.l);
+      const [black, white] = bf.aIsBlack ? [A, B] : [B, A];
+      const nb = cleanName(readFile(black.f).name || black.f.name), nw = cleanName(readFile(white.f).name || white.f.name);
+      let name = commonName(nw, nb);
+      // "Ferrari/IMG_2041.jpg" + "Ferrari/IMG_2042.jpg": the folder carries the name
+      const folderOf = (f: File) => { const p = ((f as File & { webkitRelativePath?: string }).webkitRelativePath || "").split("/"); return p.length > 2 ? p[p.length - 2] : ""; };
+      if (isGeneric(name) && folderOf(black.f) && folderOf(black.f) === folderOf(white.f)) name = cleanName(folderOf(black.f));
+      const unnamed = isGeneric(name);
+      if (unnamed) name = "";
+      const key = (name || "design-" + pr.a + "-" + pr.b).toLowerCase();
+      const unsureColour = !bf.sure;
+      map.set(map.has(key) ? key + "-" + pr.a : key, {
+        key: map.has(key) ? key + "-" + pr.a : key, name, black: black.f, white: white.f, status: "ready", auto: true,
+        note: [unnamed && "Type the poster name", unsureColour && "Check black / white (tap Swap if wrong)", pr.s < 0.75 && "Check these two are the same design"].filter(Boolean).join(" · ") || undefined,
+      });
+    }
+    looks.forEach((x, k) => {
+      if (!used.has(k)) unpaired.push({ key: "x:" + k, name: cleanName(x.f.name) || x.f.name, white: x.f, status: "skipped", note: `No matching second image found for ${x.f.name}` });
+    });
+    unreadable.forEach((f, k) => unpaired.push({ key: "u:" + k, name: f.name, status: "skipped", note: `This image couldn't be opened (${f.name})` }));
 
     const list = [...map.values()].map((r): Row => {
-      if (existing.has(r.key)) return { ...r, status: "skipped", note: "Already in the store" };
-      if (!r.black || !r.white) return { ...r, status: "skipped", note: `Missing the ${!r.black ? "black" : "white"} frame image` };
+      if (r.name && existing.has(r.name.trim().toLowerCase())) return { ...r, status: "skipped", note: "Already in the store" };
       return r;
-    }).sort((a, b) => a.name.localeCompare(b.name)).concat(unpaired);
+    }).sort((a, b) => (a.name || "~").localeCompare(b.name || "~")).concat(unpaired);
     setRows(list);
-    setReading(false);
-    const auto = list.filter((r) => r.auto).length;
-    if (auto) toast(`${auto} poster${auto === 1 ? "" : "s"} paired by matching names. Check the black/white order.`);
+    setReading(false); setReadStep("");
+    const paired = list.filter((r) => r.black && r.white).length;
+    toast(`${images.length} images → ${paired} poster${paired === 1 ? "" : "s"} paired${unpaired.length ? `, ${unpaired.length} left over` : ""}`);
   };
 
   const ready = rows.filter((r) => r.status === "ready" || r.status === "failed");
@@ -152,6 +221,7 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
     for (const r of rows) {
       if (stop.current) break;
       if (r.status !== "ready" && r.status !== "failed") continue;
+      if (!r.name.trim()) { set(r.key, { status: "failed", note: "Type the poster name, then tap Retry" }); continue; }
       set(r.key, { status: "saving", note: "Preparing photos…" });
       try {
         const [black, white] = await Promise.all([compressImage(r.black!, 1400, 0.85), compressImage(r.white!, 1400, 0.85)]);
@@ -231,13 +301,21 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
               </div>
               <ul className="rounded-2xl bg-paper border border-ramady/50 divide-y divide-ramady/50">
                 {rows.map((r) => (
-                  <li key={r.key} className="p-3 flex items-center gap-3">
+                  <li key={r.key} className="p-3 flex items-center gap-3" data-black={r.black?.name} data-white={r.white?.name}>
                     <Thumb file={r.black} label="Black" />
                     <Thumb file={r.white} label="White" />
                     <div className="flex-1 min-w-0">
-                      <input className="w-full bg-transparent font-medium border-b border-transparent hover:border-ramady focus:border-fahmy outline-none py-0.5"
-                        value={r.name} disabled={running || r.status === "saved"} aria-label="Poster name"
-                        onChange={(e) => set(r.key, { name: e.target.value })} dir="auto" />
+                      <input className={cx("w-full bg-transparent font-medium border-b hover:border-ramady focus:border-fahmy outline-none py-0.5", r.name ? "border-transparent" : "border-topy-dark")}
+                        value={r.name} placeholder="Type the poster name" disabled={running || r.status === "saved"} aria-label="Poster name"
+                        onChange={(e) => set(r.key, { name: e.target.value })} dir="auto"
+                        onKeyDown={(e) => {
+                          // Enter jumps to the next poster without a name, so naming a long list is quick
+                          if (e.key !== "Enter") return;
+                          e.preventDefault();
+                          const all = [...document.querySelectorAll<HTMLInputElement>("[data-bulk-name]")];
+                          const next = all.slice(all.indexOf(e.currentTarget) + 1).find((x) => !x.value) ?? all[all.indexOf(e.currentTarget) + 1];
+                          next?.focus();
+                        }} data-bulk-name="" />
                       {r.note && <p className={cx("text-xs mt-0.5", r.status === "failed" || r.status === "skipped" ? "text-topy-dark" : "text-stone")}>{r.note}</p>}
                     </div>
                     {r.auto && r.status === "ready" && !running && (
@@ -256,12 +334,12 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="px-5 md:px-7 py-4 border-t border-ramady/50 flex flex-wrap gap-3 items-center shrink-0">
-          {running ? <p className="text-sm text-stone">Saving… {step}. Keep this screen open.</p> : <p className="text-sm text-stone">{ready.length ? `${ready.length} poster${ready.length === 1 ? "" : "s"} ready` : counts.saved ? `Done: ${counts.saved} poster${counts.saved === 1 ? "" : "s"} added to the store` : "Choose a folder to start"}</p>}
+          {reading ? <p className="text-sm text-stone">{readStep || "Reading images…"}</p> : running ? <p className="text-sm text-stone">Saving… {step}. Keep this screen open.</p> : <p className="text-sm text-stone">{ready.length ? `${ready.length} poster${ready.length === 1 ? "" : "s"} ready` : counts.saved ? `Done: ${counts.saved} poster${counts.saved === 1 ? "" : "s"} added to the store` : "Choose a folder to start"}</p>}
           <div className="ml-auto flex gap-2">
             {running
               ? <button className="btn-line" onClick={() => { stop.current = true; }}>Stop after this one</button>
               : <button className="btn-line" onClick={onClose}>Close</button>}
-            <button className="btn-dark" disabled={running || !ready.length} onClick={run}>
+            <button className="btn-dark" disabled={running || reading || !ready.length} onClick={run}>
               {running ? "Importing…" : counts.failed ? `Retry ${ready.length}` : `Import ${ready.length || ""} posters`}
             </button>
           </div>
@@ -274,7 +352,7 @@ export function BulkImport({ onClose }: { onClose: () => void }) {
 function Thumb({ file, label }: { file?: File; label: string }) {
   const url = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
   return (
-    <div className={cx("w-12 aspect-[4/5] rounded-md overflow-hidden shrink-0 grid place-items-center text-[10px]", file ? "bg-ramly" : "border border-dashed border-topy-dark text-topy-dark")} title={`${label} frame`}>
+    <div className={cx("w-16 aspect-[4/5] rounded-md overflow-hidden shrink-0 grid place-items-center text-[10px]", file ? "bg-ramly" : "border border-dashed border-topy-dark text-topy-dark")} title={`${label} frame`}>
       {file ? <img src={url} alt={`${label} frame`} className="w-full h-full object-cover" /> : `No ${label.toLowerCase()}`}
     </div>
   );
