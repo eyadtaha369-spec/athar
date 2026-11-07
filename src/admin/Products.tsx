@@ -297,7 +297,7 @@ export default function Products() {
     <>
       <PageHead title="Products" sub={`${db.products.length} products, ${db.products.filter((p) => p.active).length} visible in the store`}
         action={<div className="flex flex-wrap gap-2">
-          <button className="btn-line" onClick={() => setBulk(true)}><FolderUp size={17} />Bulk import posters</button>
+          <button className="btn-line" onClick={() => setBulk(true)}><FolderUp size={17} />Bulk import</button>
           <button className="btn-topy" onClick={() => setEditing(blank())}><Plus size={17} />New product</button>
         </div>} />
 

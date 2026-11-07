@@ -19,7 +19,7 @@ const posterDetails = [
   "Comes framed in black or white, ready to hang",
   "Ships in a corner-protected box",
 ];
-const phoneModels = [
+export const phoneModels = [
   { id: "ip15", label: "iPhone 15 / 15 Pro", priceDelta: 0 },
   { id: "ip16", label: "iPhone 16 / 16 Pro", priceDelta: 0 },
   { id: "ip16pm", label: "iPhone 16 Pro Max", priceDelta: 30 },
